@@ -1,0 +1,16 @@
+from flask import Flask
+from config import config
+from .routes.auth import auth_scope
+from .models.models import db,login_manager,Role
+
+
+def create_app(config_name):
+    app=Flask(__name__)
+    app.config.from_object(config.get(config_name,"default"))
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+        Role.insertar_roles()
+    login_manager.init_app(app)
+    app.register_blueprint(auth_scope,url_prefix="/auth")
+    return app
