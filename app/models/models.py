@@ -31,12 +31,14 @@ class Usuario(UserMixin,db.Model):
         if self.role_id is None :
             if self.nombre == "aelvismorales":
                 role=Role.query.filter_by(nombre="Administrador").first()
-                self.role_id=role.id
+                self.role_id=role.get_id()
+                print(role.get_id())
+                print("ingreso admin")
             if self.role_id is None and role_id is not None:
                 self.role_id=role_id
+                print("ingreso role")
             else:
-                role=Role.query.filter_by(nombre="Usuario").first()
-                self.role_id=role.id
+                self.role_id=1
 
     def __repr__(self) -> str:
         return '< User %s,%s>' % self.nombre,self.role_id
@@ -90,6 +92,9 @@ class Role(db.Model):
     
     def reiniciar_permisos(self):
         self.permisos=0
+
+    def get_id(self):
+        return self.id
 
     @staticmethod
     def insertar_roles():

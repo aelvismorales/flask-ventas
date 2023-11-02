@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, make_response,request
 from flask_login import login_user,logout_user,login_required
-from ..models.models import Usuario,db
+from ..decorators import permiso_requerido,administrador_requerido
+from ..models.models import Usuario,db,Permission
 
 auth_scope=Blueprint("auth",__name__)
 
@@ -11,6 +12,7 @@ def registro():
     u_contraseña=data.get("contraseña")
     u_rol_id= None if data.get("rol") is None else data.get("rol") # LO IDEAL DESDE FRONT TENER LOS ID DE CADA TIPO DE ROL Y ENVIARLOS ASI
     
+    print(u_rol_id)
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
 
     if usuario is not None:
@@ -61,3 +63,9 @@ def logout():
     response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
     response.headers['Content-type']="application/json"
     return response
+
+@auth_scope.route('/information')
+@login_required
+@permiso_requerido(Permission.CREAR_PRODUCTO)
+def information():
+    return "HOLA"

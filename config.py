@@ -5,7 +5,7 @@ class Config():
     SECRET_KEY="4KK#ASDA"
     DEBUG=False
     TESTING=False
-    SQLALCHEMY_DATABASE_URI="mysql://root:admin@localhost/markus_brasa"
+    SQLALCHEMY_DATABASE_URI="mysql+mysqlconnector://root:admin@127.0.0.1/markus_brasa"
 
 class ProductionConfig(Config):
      SQLALCHEMY_DATABASE_URI=environ.get("DATABASE_PRODUCTION")
