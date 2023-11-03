@@ -23,7 +23,7 @@ class Usuario(UserMixin,db.Model):
     id=db.Column(db.Integer,primary_key=True)
     nombre=db.Column(db.String(64),unique=True,index=True)
     contraseña=db.Column(db.String(128))
-    role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,default=1)
+    role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
 
     def __init__(self,nombre,contraseña,role_id=None) -> None:
         self.nombre=nombre
@@ -32,9 +32,9 @@ class Usuario(UserMixin,db.Model):
             if self.nombre == "aelvismorales":
                 role=Role.query.filter_by(nombre="Administrador").first()
                 self.role_id=role.get_id()
-            if self.role_id is None and role_id is not None:
+            elif self.role_id is None and role_id is not None:
                 self.role_id=role_id
-            if role_id is None:
+            else:
                 self.role_id=1
 
     def __repr__(self) -> str:
