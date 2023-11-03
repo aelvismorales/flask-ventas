@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, make_response,request
 from flask_login import login_user,logout_user,login_required
 from ..decorators import permiso_requerido,administrador_requerido
-from ..models.models import Usuario,db,Permission
+from ..models.models import Usuario,db,Permission,Role
 
 auth_scope=Blueprint("auth",__name__)
 
@@ -12,7 +12,7 @@ def registro():
     {
         "nombre": "aelvismorales",
         "contraseña": "0000000",
-        "rol" : 1   -> Recordar que el rol en front end sera por nombres y aqui se enviara por ID.
+        "rol" : "Usuario"
     }
     Finalizar, se devuelve un Json de formato:
     { 
@@ -24,9 +24,8 @@ def registro():
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
-    u_rol_id= None if data.get("rol") is None else data.get("rol") # LO IDEAL DESDE FRONT TENER LOS ID DE CADA TIPO DE ROL Y ENVIARLOS ASI
+    u_rol= "Usuario" if data.get("rol") is None else data.get("rol") 
     
-    print(u_rol_id)
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
 
     if usuario is not None:
@@ -36,7 +35,8 @@ def registro():
         }),409)
         response.headers["Content-type"]="application/json"
         return response
-
+    rol=Role.query.filter_by(nombre=u_rol).first()
+    u_rol_id=rol.get_id()
     try:
         nuevo_usuario=Usuario(u_nombre,u_contraseña,u_rol_id)
         db.session.add(nuevo_usuario)
