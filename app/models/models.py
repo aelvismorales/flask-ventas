@@ -32,12 +32,9 @@ class Usuario(UserMixin,db.Model):
             if self.nombre == "aelvismorales":
                 role=Role.query.filter_by(nombre="Administrador").first()
                 self.role_id=role.get_id()
-                print(role.get_id())
-                print("ingreso admin")
             if self.role_id is None and role_id is not None:
                 self.role_id=role_id
-                print("ingreso role")
-            else:
+            if role_id is None:
                 self.role_id=1
 
     def __repr__(self) -> str:
