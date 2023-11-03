@@ -1,3 +1,4 @@
+from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import LoginManager,UserMixin,AnonymousUserMixin
@@ -5,6 +6,7 @@ from flask_login import LoginManager,UserMixin,AnonymousUserMixin
 db=SQLAlchemy()
 
 login_manager=LoginManager()
+scale = 2
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -118,3 +120,54 @@ class Role(db.Model):
             role.default=(role.nombre == default_role)
             db.session.add(role)
         db.session.commit()
+
+class Producto(db.Model):
+    __tablename__="productos"
+    id=db.Column(db.Integer,primary_key=True)
+    nombre=db.Column(db.String(64),unique=True)
+    precio=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+    tipo_id=db.Column(db.Integer,db.ForeignKey('tipos.id',ondelete='SET DEFAULT',name='FK_tipo_producto'),nullable=False,server_default='1')
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_producto'),nullable=False,server_default='1')
+    # TO DO - CUANDO INICIES EN LA BASE DE DATOS PARA CREAR UN PRODUCTO POR DEFECTO DEBER EXISTIR LA IMAGEN 1
+    def __init__(self,nombre,precio,tipo_id=1,imagen_id=1) -> None:
+        self.nombre=nombre
+        self.precio= Decimal(precio).quantize(Decimal("1e-{0}".format(scale)))
+        self.tipo_id=tipo_id
+        self.imagen_id=imagen_id
+    
+    def __repr__(self) -> str:
+        return '<Producto %s,precio:%d>' % self.nombre,self.precio
+
+
+class Tipo(db.Model):
+    __tablename__="tipos"
+    id=db.Column(db.Integer,primary_key=True)
+    nombre=db.Column(db.String(64),nullable=False)
+
+    def __init__(self,nombre) -> None:
+        self.nombre=nombre
+    
+    def insertar_tipos():
+        tipos=['General','Pollos','Chifa']
+        for t in tipos:
+            tipo=Tipo.query.filter_by(nombre=t).first()
+            if tipo is None:
+                tipo=Tipo(t)
+                db.session.add(tipo)
+        db.session.commit()
+
+class Imagen(db.Model):
+    __tablename__="imagenes"
+    id=db.Column(db.Integer,primary_key=True)
+    filename=db.Column(db.Text,nullable=False)
+    filepath=db.Column(db.Text,nullable=False)
+    mimetype=db.Column(db.String(24),nullable=False)
+    
+    def __init__(self,filename,filepath,mimetype) -> None:
+        self.filename=filename
+        self.filepath=filepath
+        self.mimetype=mimetype
+    
+    def get_filename(self):
+        return "%s" % self.filename
+    
