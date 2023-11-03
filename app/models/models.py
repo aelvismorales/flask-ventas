@@ -136,14 +136,16 @@ class Producto(db.Model):
         self.imagen_id=imagen_id
     
     def __repr__(self) -> str:
-        return '<Producto %s,precio:%d>' % self.nombre,self.precio
+        return '<Producto %s,precio:%d>' % (self.nombre,self.precio)
 
+    def get_imagen_id(self):
+        return self.imagen_id
 
 class Tipo(db.Model):
     __tablename__="tipos"
     id=db.Column(db.Integer,primary_key=True)
     nombre=db.Column(db.String(64),nullable=False)
-
+    productos=db.relationship('Producto',backref='tipo',lazy='dynamic')
     def __init__(self,nombre) -> None:
         self.nombre=nombre
     
@@ -156,13 +158,17 @@ class Tipo(db.Model):
                 db.session.add(tipo)
         db.session.commit()
 
+    def get_id(self):
+        return self.id
+    
 class Imagen(db.Model):
     __tablename__="imagenes"
     id=db.Column(db.Integer,primary_key=True)
     filename=db.Column(db.Text,nullable=False)
     filepath=db.Column(db.Text,nullable=False)
     mimetype=db.Column(db.String(24),nullable=False)
-    
+    productos=db.relationship('Producto',backref='imagen',lazy='dynamic')
+
     def __init__(self,filename,filepath,mimetype) -> None:
         self.filename=filename
         self.filepath=filepath
@@ -170,4 +176,7 @@ class Imagen(db.Model):
     
     def get_filename(self):
         return "%s" % self.filename
+    
+    def get_id(self):
+        return self.id
     
