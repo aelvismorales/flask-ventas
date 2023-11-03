@@ -7,6 +7,20 @@ auth_scope=Blueprint("auth",__name__)
 
 @auth_scope.route('/registro',methods=['POST'])
 def registro():
+    """ 
+    La ruta de registro recibe informacion en formato Json, en donde recibira la siguiente estructura.
+    {
+        "nombre": "aelvismorales",
+        "contraseña": "0000000",
+        "rol" : 1   -> Recordar que el rol en front end sera por nombres y aqui se enviara por ID.
+    }
+    Finalizar, se devuelve un Json de formato:
+    { 
+        "mensaje": "informacion",
+        "http_code":201,
+        "usuario: "nombre_usuario"
+    }
+    """ 
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
@@ -41,6 +55,19 @@ def registro():
 
 @auth_scope.route('/login',methods=['POST'])
 def login():
+    """ 
+    La ruta login recibe informacion en formato Json, de la siguiente manera:
+    {
+        "nombre": "aelvismorales",
+        "contraseña": "0000000",
+        "recuerdame": True or False
+    }
+     Finalizar, se devuelve un Json de formato:
+    { 
+        "mensaje": "informacion",
+        "http_code":201
+    }
+    """
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
@@ -59,6 +86,9 @@ def login():
 @auth_scope.route('/logout',methods=['POST'])
 @login_required
 def logout():
+    """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
+        halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
+    """
     logout_user()
     response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
     response.headers['Content-type']="application/json"
