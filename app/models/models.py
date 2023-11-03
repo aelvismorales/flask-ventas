@@ -25,6 +25,10 @@ class Usuario(UserMixin,db.Model):
     contraseña=db.Column(db.String(128))
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
 
+    # Para que el role_id sea uno se debe eliminar el rol de la siguiente manera
+    # role=Role.query.filter_By(id=3).first()
+    # db.session.delete(role)
+    # db.session.commit()  -> De esta manera podremos eliminar sin problemas un rol 
     def __init__(self,nombre,contraseña,role_id=None) -> None:
         self.nombre=nombre
         self.contraseña=generate_password_hash(contraseña,method="pbkdf2",salt_length=8)
