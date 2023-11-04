@@ -127,7 +127,7 @@ class Producto(db.Model):
     nombre=db.Column(db.String(64),unique=True)
     precio=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     tipo_id=db.Column(db.Integer,db.ForeignKey('tipos.id',ondelete='SET DEFAULT',name='FK_tipo_producto'),nullable=False,server_default='1')
-    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_producto'),nullable=False,server_default='1')
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',name='FK_imagen_producto'),nullable=False)
     # TO DO - CUANDO INICIES EN LA BASE DE DATOS PARA CREAR UN PRODUCTO POR DEFECTO DEBER EXISTIR LA IMAGEN 1
     def __init__(self,nombre,precio,tipo_id=1,imagen_id=1) -> None:
         self.nombre=nombre
@@ -140,6 +140,10 @@ class Producto(db.Model):
 
     def get_imagen_id(self):
         return self.imagen_id
+    
+    def get_json(self):
+        json={"id":self.id,"nombre":"%s" % self.nombre, "precio":f'{self.precio:.2f}',"tipo_id":self.tipo_id,"imagen_id":self.imagen_id}
+        return json
 
 class Tipo(db.Model):
     __tablename__="tipos"
@@ -167,7 +171,7 @@ class Imagen(db.Model):
     filename=db.Column(db.Text,nullable=False)
     filepath=db.Column(db.Text,nullable=False)
     mimetype=db.Column(db.String(24),nullable=False)
-    productos=db.relationship('Producto',backref='imagen',lazy='dynamic')
+    productos=db.relationship('Producto',backref='imagen',lazy='dynamic',cascade='all,delete-orphan')
 
     def __init__(self,filename,filepath,mimetype) -> None:
         self.filename=filename
