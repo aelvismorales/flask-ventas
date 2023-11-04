@@ -93,9 +93,3 @@ def logout():
     response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
     response.headers['Content-type']="application/json"
     return response
-
-@auth_scope.route('/information')
-@login_required
-@permiso_requerido(Permission.CREAR_PRODUCTO)
-def information():
-    return "HOLA"

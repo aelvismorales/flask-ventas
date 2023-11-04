@@ -3,7 +3,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 from ..decorators import administrador_requerido
 from ..models.models import Producto,Tipo,db,Imagen
-from .general import validar_imagen
+from .general import validar_imagen,upload_imagen
 import os
 
 producto_scope=Blueprint("producto",__name__)
@@ -69,7 +69,63 @@ def crear():
         }),201)
     except Exception as e:
         db.session.rollback()
-        response=make_response(jsonify({"mensaje": "El producto no se pudo crear",
+        response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
+                                        "http_code":500}),500)
+    response.headers["Content-type"]="application/json"    
+    return response
+
+@producto_scope.route('/editar/<id>',methods=['GET','POST'])
+@login_required
+@administrador_requerido
+def editar(id):
+    # CAMBIAR EL NOMBRE DE LA IMAGEN SI ES QUE SE CAMBIA EL NOMBRE DEL PRODUCTO ?
+    p_nombre=request.form.get("nombre").upper().strip()
+    p_precio=request.form.get("precio")
+    p_tipo="General" if request.form.get("tipo") is None else request.form.get("tipo")
+
+    producto=Producto.query.get(id)
+    tipo=Tipo.query.filter_by(nombre=p_tipo).first()
+
+    producto.nombre=p_nombre
+    producto.precio=p_precio
+    producto.tipo_id=tipo.get_id()
+
+    if 'file' in request.files:
+        last_image=Imagen.query.get(producto.get_imagen_id())
+        imagen_subida=request.files['file']
+        filename=secure_filename(imagen_subida.filename)
+        if filename !='':
+            file_ext=os.path.splitext(filename)[1]
+            if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
+                response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
+                                                ,"http_code":400}),400)
+                response.headers["Content-type"]="application/json"
+                return response
+            final_filename=p_nombre+file_ext
+            imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
+            img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
+            db.session.add(img)
+            db.session.commit()
+            producto.imagen_id=img.get_id()
+
+            #Removing the last image of producto
+            path='../'+current_app.config['UPLOAD_PATH_PRODUCTOS']+last_image.get_filename()
+            if os.path.isfile(path):
+                os.remove(path)
+                db.session.delete(last_image)
+                db.session.commit()
+                mensaje_eliminado="Se elimino la imagen anterior correctamente"
+
+    try:
+        db.session.commit()
+        response=make_response(jsonify({
+            "mensaje":"Se actualizo el producto correctamente",
+            "adicional":mensaje_eliminado,
+            "http_code":200
+        }),200)
+    except Exception as e:
+        db.session.rollback()
+        response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
                                         "http_code":500}),500)
     response.headers["Content-type"]="application/json"    
     return response
