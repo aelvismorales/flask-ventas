@@ -86,43 +86,46 @@ def editar(id):
         p_tipo="General" if request.form.get("tipo") is None else request.form.get("tipo")
 
         tipo=Tipo.query.filter_by(nombre=p_tipo).first()
-
-        producto.nombre=p_nombre
-        producto.precio=p_precio
-        producto.tipo_id=tipo.get_id()
         mensaje_eliminado=""
         if 'file' in request.files:
             last_image=Imagen.query.get(producto.get_imagen_id())
             imagen_subida=request.files['file']
-            filename=secure_filename(imagen_subida.filename)
-            if filename !='':
-                file_ext=os.path.splitext(filename)[1]
-                if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                    response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                    ,"http_code":400}),400)
-                    response.headers["Content-type"]="application/json"
-                    return response
-                #Removing the last image of producto
-                path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()            
-                if os.path.exists(path):
-                    os.remove(path)
-                    db.session.delete(last_image)
+            print(imagen_subida)
+            if imagen_subida is not None:
+                filename=secure_filename(imagen_subida.filename)
+                if filename !='':
+                    file_ext=os.path.splitext(filename)[1]
+                    if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
+                        response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
+                                                        ,"http_code":400}),400)
+                        response.headers["Content-type"]="application/json"
+                        return response
+
+                    #Removing the last image of producto
+                    path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
+                    if os.path.exists(path):
+                        os.remove(path)
+                        #db.session.delete(last_image)
+                        #db.session.commit()
+                        #print(producto.get_imagen_id())
+                        mensaje_eliminado="Se elimino la imagen anterior correctamente"
+                    
+                    final_filename=p_nombre+file_ext
+                    imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
+                    img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
+                    db.session.add(img)
                     db.session.commit()
-                    mensaje_eliminado="Se elimino la imagen anterior correctamente"
-
-                final_filename=p_nombre+file_ext
-                imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
-                img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
-                db.session.add(img)
-                db.session.commit()
-                producto.imagen_id=img.get_id()
-
+                    producto.imagen_id=img.get_id()
+                        
         try:
             response=make_response(jsonify({
                 "mensaje":"Se actualizo el producto correctamente",
                 "adicional":mensaje_eliminado,
                 "http_code":200
             }),200)
+            producto.nombre=p_nombre
+            producto.precio=p_precio
+            producto.tipo_id=tipo.get_id()
             db.session.commit()
         except Exception as e:
             db.session.rollback()
