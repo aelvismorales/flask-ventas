@@ -44,7 +44,8 @@ class Usuario(UserMixin,db.Model):
                 self.role_id=1
 
     def __repr__(self) -> str:
-        return '< User %s,%s>' % self.nombre,self.role_id
+        return str('id:%s,nombre:%s,role:%s') % (self.id,self.nombre,self.role.get_nombre())
+        #return '< User %s,%s>' % (self.nombre,self.role_id)
     
     def verificar_contraseña(self,contraseña):
         return check_password_hash(self.contraseña,contraseña)
@@ -54,6 +55,10 @@ class Usuario(UserMixin,db.Model):
     
     def is_administrador(self):
         return self.can(Permission.ADMINISTRADOR)
+
+    def get_json(self):
+        json={"id":self.id,"nombre":self.nombre,"role_id":self.role.get_nombre()}
+        return json
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self):
@@ -98,6 +103,9 @@ class Role(db.Model):
 
     def get_id(self):
         return self.id
+    
+    def get_nombre(self):
+        return self.nombre
 
     @staticmethod
     def insertar_roles():
