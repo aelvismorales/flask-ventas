@@ -1,8 +1,11 @@
 import json
-from flask import Blueprint, jsonify, make_response,request
+from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app
 from flask_login import login_user,logout_user,login_required
+from werkzeug.utils import secure_filename
 from ..decorators import permiso_requerido,administrador_requerido
-from ..models.models import Usuario,db,Permission,Role
+from ..models.models import Usuario,db,Imagen,Role
+from .general import validar_imagen
+import os
 
 auth_scope=Blueprint("auth",__name__)
 
@@ -26,8 +29,7 @@ def registro():
     data=request.json
     u_nombre=data.get("nombre").strip()
     u_contraseña=data.get("contraseña").strip()
-    u_rol= "Usuario" if data.get("rol") is None else data.get("rol") 
-    
+    u_rol= 'Usuario' if data.get("rol") is None else data.get("rol") 
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
 
     if usuario is not None:
@@ -37,10 +39,17 @@ def registro():
         }),409)
         response.headers["Content-type"]="application/json"
         return response
+    
     rol=Role.query.filter_by(nombre=u_rol).first()
-    u_rol_id=rol.get_id()
+    if rol is None:
+        response=make_response(jsonify({
+            "mensaje": "El rol no existe en la base de datos",
+            "http_code":409
+        }),409)
+        response.headers["Content-type"]="application/json"
+        return response
     try:
-        nuevo_usuario=Usuario(u_nombre,u_contraseña,u_rol_id)
+        nuevo_usuario=Usuario(u_nombre,u_contraseña,rol.get_id())
         db.session.add(nuevo_usuario)
         db.session.commit()
         response=make_response(jsonify({"mensaje":"El usuario se registro correctamente",
@@ -110,13 +119,43 @@ def editar(id):
 
         rol=Role.query.filter_by(nombre=u_rol).first()
 
-        usuario.nombre=u_nombre
-        usuario.role_id=rol.get_id()
+        mensaje_eliminado=""
+        if 'file' in request.files:
+            last_image=Imagen.query.get(usuario.get_imagen_id())
+            imagen_subida=request.files['file']
+            if imagen_subida is not None:
+                filename=secure_filename(imagen_subida.filename)
+                if filename!='':
+                    file_ext=os.path.splitext(filename)[1]
+                    if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
+                        response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
+                                                        ,"http_code":400}),400)
+                        response.headers["Content-type"]="application/json"
+                        return response
+                    #Removing the last image of producto
+                    path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
+                    if os.path.exists(path) and last_image.get_id()!=1:
+                        os.remove(path)
+                        #db.session.delete(last_image)
+                        #db.session.commit()
+                        #print(producto.get_imagen_id())
+                        mensaje_eliminado="Se elimino la imagen anterior correctamente"
 
+                    final_filename=u_nombre+file_ext
+                    imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
+                    img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
+                    db.session.add(img)
+                    db.session.commit()
+                    usuario.imagen_id=img.get_id()
+ 
+ 
         try:
-            db.session.commit()
-            response=make_response(jsonify({"mensaje": "El usuario se ha actualizado correctamente","http_code": 200}),200)
+            usuario.nombre=u_nombre
+            usuario.role_id=rol.get_id()
+            response=make_response(jsonify({"mensaje": "El usuario se ha actualizado correctamente",
+                                            "adicional":mensaje_eliminado,"http_code": 200}),200)
             response.headers['Content-type']="application/json"
+            db.session.commit()
             return response
         except Exception as e:
             response=make_response(jsonify({"mensaje":"No se ha podido actualizar los datos del usuario","error": e.args[0],"http_code":500}),500)
@@ -156,3 +195,11 @@ def ver_usuarios():
         json_usuario.append(u.get_json())
     json_string=json.dumps(json_usuario,indent=4)
     return json_string
+
+@auth_scope.route('/ver/imagen/<id>',methods=['GET'])
+def ver_imagen(id):
+    usuario=Usuario.query.filter_by(id=id).first()
+    img_id=usuario.get_imagen_id()
+    img=Imagen.query.filter_by(id=img_id).first()
+
+    return send_from_directory('../'+current_app.config['UPLOAD_PATH_PERFILES'],img.get_filename())

@@ -26,7 +26,8 @@ class Usuario(UserMixin,db.Model):
     nombre=db.Column(db.String(64),unique=True,index=True)
     contraseña=db.Column(db.String(128))
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
-
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
+    
     # Para que el role_id sea uno se debe eliminar el rol de la siguiente manera
     # role=Role.query.filter_By(id=3).first()
     # db.session.delete(role)
@@ -38,10 +39,17 @@ class Usuario(UserMixin,db.Model):
             if self.nombre == "aelvismorales":
                 role=Role.query.filter_by(nombre="Administrador").first()
                 self.role_id=role.get_id()
+                img=Imagen.query.filter_by(filename='administrador_perfil.png').first()
+                self.imagen_id=img.get_id()
+
             elif self.role_id is None and role_id is not None:
                 self.role_id=role_id
+                img=Imagen.query.filter_by(filename='usuario_perfil.png').first()
+                self.imagen_id=img.get_id()
             else:
                 self.role_id=1
+                img=Imagen.query.filter_by(filename='usuario_perfil.png').first()
+                self.imagen_id=img.get_id()
 
     def __repr__(self) -> str:
         return str('id:%s,nombre:%s,role:%s') % (self.id,self.nombre,self.role.get_nombre())
@@ -59,9 +67,12 @@ class Usuario(UserMixin,db.Model):
     def get_json(self):
         json={"id":self.id,"nombre":self.nombre,"role_id":self.role.get_nombre()}
         return json
+    
+    def get_imagen_id(self):
+        return self.imagen_id
 
 class AnonymousUser(AnonymousUserMixin):
-    def can(self):
+    def can(self,permiso):
         return False
     def is_administrador(self):
         return False   
@@ -135,9 +146,9 @@ class Producto(db.Model):
     nombre=db.Column(db.String(64),unique=True)
     precio=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     tipo_id=db.Column(db.Integer,db.ForeignKey('tipos.id',ondelete='SET DEFAULT',name='FK_tipo_producto'),nullable=False,server_default='1')
-    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_producto'),nullable=False,server_default='1')
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_producto'),nullable=False,server_default='3')
     # TO DO - CUANDO INICIES EN LA BASE DE DATOS PARA CREAR UN PRODUCTO POR DEFECTO DEBER EXISTIR LA IMAGEN 1
-    def __init__(self,nombre,precio,tipo_id=1,imagen_id=1) -> None:
+    def __init__(self,nombre,precio,tipo_id=1,imagen_id=3) -> None:
         self.nombre=nombre
         self.precio= Decimal(precio).quantize(Decimal("1e-{0}".format(scale)))
         self.tipo_id=tipo_id
@@ -180,6 +191,7 @@ class Imagen(db.Model):
     filepath=db.Column(db.Text,nullable=False)
     mimetype=db.Column(db.String(24),nullable=False)
     productos=db.relationship('Producto',backref='imagen',lazy='dynamic')
+    usuarios=db.relationship('Usuario',backref='imagen',lazy='dynamic')
 
     def __init__(self,filename,filepath,mimetype) -> None:
         self.filename=filename
@@ -194,4 +206,27 @@ class Imagen(db.Model):
     def get_id(self):
         return self.id
     
-    
+    def insertar_fotos():
+        filename_administrador='administrador_perfil.png'
+        filename_usuario='usuario_perfil.png'
+        filename_producto='pollo_inicial.png'
+        mimetype="mime/png"
+        filepath_perfiles='uploads/perfiles'
+        filepath_productos='uploas/productos'
+
+        imagenes=[filename_administrador,filename_usuario]
+        imageni=[filename_producto]
+        for i in imagenes:
+            img=Imagen.query.filter_by(filename=i).first()
+            if img is None:
+                imagen=Imagen(i,filepath_perfiles,mimetype)
+                db.session.add(imagen)
+
+        for i in imageni:
+            img=Imagen.query.filter_by(filename=i).first()
+            if img is None:
+                imagen=Imagen(i,filepath_productos,mimetype)
+                db.session.add(imagen)
+
+        db.session.commit()
+

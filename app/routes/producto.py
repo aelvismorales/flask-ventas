@@ -74,13 +74,13 @@ def crear():
     response.headers["Content-type"]="application/json"    
     return response
 
-@producto_scope.route('/editar/<id>',methods=['GET','POST'])
+@producto_scope.route('/editar/<id>',methods=['GET','PUT'])
 @login_required
 @administrador_requerido
 def editar(id):
     # CAMBIAR EL NOMBRE DE LA IMAGEN SI ES QUE SE CAMBIA EL NOMBRE DEL PRODUCTO ?
     producto=Producto.query.get(id)
-    if request.method=="POST":
+    if request.method=="PUT":
         p_nombre=request.form.get("nombre").upper().strip()
         p_precio=float(request.form.get("precio"))
         p_tipo="General" if request.form.get("tipo") is None else request.form.get("tipo")
@@ -90,7 +90,6 @@ def editar(id):
         if 'file' in request.files:
             last_image=Imagen.query.get(producto.get_imagen_id())
             imagen_subida=request.files['file']
-            print(imagen_subida)
             if imagen_subida is not None:
                 filename=secure_filename(imagen_subida.filename)
                 if filename !='':
@@ -103,7 +102,7 @@ def editar(id):
 
                     #Removing the last image of producto
                     path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
-                    if os.path.exists(path):
+                    if os.path.exists(path) and last_image.get_id()!=3:
                         os.remove(path)
                         #db.session.delete(last_image)
                         #db.session.commit()
@@ -127,6 +126,7 @@ def editar(id):
             producto.precio=p_precio
             producto.tipo_id=tipo.get_id()
             db.session.commit()
+            return response
         except Exception as e:
             db.session.rollback()
             response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
