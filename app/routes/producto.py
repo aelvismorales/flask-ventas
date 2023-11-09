@@ -61,12 +61,12 @@ def crear():
     try:
         img_id=img.get_id()
         nuevo_producto=Producto(p_nombre,p_precio,tipo_id,img_id)
+        db.session.add(nuevo_producto)
+        db.session.commit()
         response=make_response(jsonify({
             "mensaje":"Se creo el producto satisfactoriamente",
             "http_code":201
         }),201)
-        db.session.add(nuevo_producto)
-        db.session.commit()
     except Exception as e:
         db.session.rollback()
         response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
@@ -126,6 +126,7 @@ def editar(id):
             producto.precio=p_precio
             producto.tipo_id=tipo.get_id()
             db.session.commit()
+            response.headers["Content-type"]="application/json" 
             return response
         except Exception as e:
             db.session.rollback()
@@ -137,6 +138,27 @@ def editar(id):
     response.headers["Content-type"]="application/json"
     return response
 
+@producto_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
+@login_required
+@administrador_requerido
+def eliminar(id):
+    producto=Producto.query.get(id)
+    if request.method=='DELETE' and producto is not None:
+        db.session.delete(producto)
+        db.session.commit()
+        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el producto","http_code":200}),200)
+        response.headers['Content-type']="application/json"
+        return response
+    
+    elif request.method=='DELETE' and producto is None:
+        response=make_response(jsonify({"mensaje": "El producto que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response.headers['Content-type']="application/json"
+        return response
+    # TO DO VERIFICAR IF STATEMENTS SI ENVIAN UN ID QUE NO ES VALIDO ENTONCES EL RESPONSE DE GET NO FUNCIONARA.
+    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el Producto %s" % producto.nombre,"usuario":producto.get_json(),"http_code":200}),200)
+    response.headers['Content-type']="application/json"
+    return response
+
 
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
 def ver_producto(id_producto):
@@ -144,3 +166,4 @@ def ver_producto(id_producto):
     img_id=producto.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
     return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())
+

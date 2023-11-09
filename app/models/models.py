@@ -2,6 +2,7 @@ from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import LoginManager,UserMixin,AnonymousUserMixin
+from datetime import datetime
 
 db=SQLAlchemy()
 
@@ -230,3 +231,27 @@ class Imagen(db.Model):
 
         db.session.commit()
 
+class Articulo(db.Model):
+    __tablename__="articulos"
+    id=db.Column(db.Integer,primary_key=True)
+    nombre=db.Column(db.String(64),unique=True)
+    unidad=db.Column(db.String(32))
+    cantidad=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+    fecha_actualizacion=db.Column(db.DateTime,default=datetime.now)
+
+    def __init__(self,nombre,unidad,cantidad) -> None:
+        self.nombre=nombre
+        self.unidad=unidad
+        self.cantidad=cantidad
+
+    def get_id(self):
+        return self.id
+    
+    def get_fecha_actualizacion(self):
+        if self.fecha_actualizacion is not None:
+            return self.fecha_actualizacion.strftime('%d/%m/%Y')
+        return None
+    
+    def get_json(self):
+        json={"id":self.id,"nombre":self.nombre,"unidad":self.unidad,"cantidad":f'{self.cantidad:.2f}',"fecha_actualizacion":self.get_fecha_actualizacion()}
+        return json

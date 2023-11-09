@@ -10,6 +10,7 @@ import os
 auth_scope=Blueprint("auth",__name__)
 
 #TODO DEFINIRLO COMO SOLO ACCESO A ADMINISTRADOR
+# Modificar y que al iniciar el sistema verifique si existe un administrador en caso de no serlo se creara uno por defecto al iniciar.
 @auth_scope.route('/registro',methods=['POST'])
 def registro():
     """ 
@@ -173,7 +174,6 @@ def eliminar(id):
         db.session.commit()
         response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente al Usuario","http_code":200}),200)
         response.headers['Content-type']="application/json"
-
         return response
     
     elif request.method=='DELETE' and usuario is None:
