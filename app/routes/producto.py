@@ -159,10 +159,41 @@ def eliminar(id):
     response.headers['Content-type']="application/json"
     return response
 
+@producto_scope.route('/buscar',methods=['GET'])
+@login_required
+def buscar_producto():
+    tipo=request.args.get('tipo',default='*',type=str)
+    nombre=request.args.get('nombre',default='pollo',type=str).replace('_',' ').upper()
+
+    print(tipo,nombre)
+    productos=Producto.query.filter(Producto.nombre.like('%'+nombre+'%')).all()
+    json_producto=[]
+    if request.method=='GET' and tipo=='*' and len(productos) > 0:
+        for pr in productos:
+            json_producto.append(pr.get_json())
+        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response.headers['Content-type']="application/json"
+        return response
+    elif request.method=='GET' and tipo !='*': # Lo ideal es un in ('General','Pollo','Chifa') para el tipo pero aun no se definen todas los tipos , "ideal enviar el ID del tipo tambien"
+        tipo_id=Tipo.query.filter_by(nombre=tipo).first()
+        productos=Producto.query.filter(Producto.nombre.like('%'+nombre+'%'),Producto.tipo_id==tipo_id.get_id()).all()
+        for pr in productos:
+            json_producto.append(pr.get_json())
+        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response.headers['Content-type']="application/json"
+        return response
+    
+
+
+    
 
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
 def ver_producto(id_producto):
     producto=Producto.query.filter_by(id=id_producto).first()
+    if producto is None:
+        response=make_response(jsonify({"mensaje":"El producto con ese ID no se encuentra","http_code":404}),404)
+        response.headers['Content-type']="application/json"
+        return response
     img_id=producto.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
     return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())

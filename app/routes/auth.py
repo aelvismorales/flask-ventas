@@ -107,6 +107,26 @@ def logout():
     return response
 
 
+# USUARIO
+#Quizas utilizar url queries para obtener los datos ordenados y que no lo realice el front ?
+@auth_scope.route('/buscar/<string:nombre>',methods=['GET'])
+@administrador_requerido
+def buscar_nombre(nombre):
+    nombre=nombre.replace("_"," ")
+    usuarios=Usuario.query.filter(Usuario.nombre.like('%'+nombre+'%')).all()
+    json_usuario=[]
+    if len(usuarios) > 0 and request.method=='GET':
+        for u in usuarios:
+            json_usuario.append(u.get_json())
+        
+        response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+        response.headers["Content-type"]="application/json"
+        return response
+    
+    response=make_response(jsonify({"mensaje":"No se pudo encontrar a ningun usuario con ese nombre","http_code":404}),404)
+    response.headers["Content-type"]="application/json"
+    return response
+
 @auth_scope.route('/editar/<id>',methods=['GET','PUT'])
 @administrador_requerido
 def editar(id):
@@ -193,12 +213,17 @@ def ver_usuarios():
     json_usuario=[]
     for u in usuarios:
         json_usuario.append(u.get_json())
-    json_string=json.dumps(json_usuario,indent=4)
-    return json_string
+    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+    response.headers["Content-type"]="application/json"
+    return response
 
 @auth_scope.route('/ver/imagen/<id>',methods=['GET'])
 def ver_imagen(id):
     usuario=Usuario.query.filter_by(id=id).first()
+    if usuario is None:
+        response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}),404)
+        response.headers['Content-type']="application/json"
+        return response
     img_id=usuario.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
 
