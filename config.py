@@ -5,7 +5,7 @@ class Config():
     SECRET_KEY="4KK#ASDA"
     DEBUG=False
     TESTING=False
-    SQLALCHEMY_DATABASE_URI="mysql+mysqlconnector://root:admin@127.0.0.1/markus_brasa"
+    SQLALCHEMY_DATABASE_URI=environ.get('DB_DEV',"mysql+mysqlconnector://root:admin@127.0.0.1/markus_brasa")
 
     # Configuracion ruta de Imagenes
     MAX_CONTENT_LENGTH=1024*1024
