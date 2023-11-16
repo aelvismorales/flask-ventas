@@ -28,7 +28,9 @@ class Usuario(UserMixin,db.Model):
     contraseña=db.Column(db.String(128))
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
     imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
-    
+    nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
+
+
     # Para que el role_id sea uno se debe eliminar el rol de la siguiente manera
     # role=Role.query.filter_By(id=3).first()
     # db.session.delete(role)
@@ -71,6 +73,9 @@ class Usuario(UserMixin,db.Model):
     
     def get_imagen_id(self):
         return self.imagen_id
+    
+    def get_id(self):
+        return self.id
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self,permiso):
@@ -141,6 +146,36 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
+class Cliente(db.Model):
+    __tablename__="clientes"
+    id=db.Column(db.Integer,primary_key=True)
+    nombre=db.Column(db.String(64),nullable=False)
+    direccion=db.Column(db.String(64),nullable=False)
+    telefono=db.Column(db.String(64),nullable=False,unique=True)
+    nota_pedidos=db.relationship('NotaPedido',backref='cliente',lazy='dynamic')
+
+    def __init__(self,nombre,direccion,telefono) -> None:
+        self.nombre=nombre
+        self.direccion=direccion
+        self.telefono=telefono
+
+    def get_json(self):
+        json={"id":self.id,"nombre":self.nombre,"direccion":self.direccion,"telefono":self.telefono}
+        return json
+    
+    def get_id(self):
+        return self.id
+
+
+
+detalle_venta=db.Table('detalle_venta',
+                       db.Column('nota_id',db.Integer,db.ForeignKey('nota_pedidos.id')),
+                       db.Column('producto_id',db.Integer,db.ForeignKey('productos.id')),
+                       db.Column('dv_cantidad',db.Numeric(precision=10,scale=2)),
+                       db.Column('dv_precio',db.Numeric(precision=10,scale=2))
+                       )
+    
+
 class Producto(db.Model):
     __tablename__="productos"
     id=db.Column(db.Integer,primary_key=True)
@@ -161,9 +196,67 @@ class Producto(db.Model):
     def get_imagen_id(self):
         return self.imagen_id
     
+    def get_nombre(self):
+        return self.nombre
+    
     def get_json(self):
         json={"id":self.id,"nombre":"%s" % self.nombre, "precio":f'{self.precio:.2f}',"tipo_id":self.tipo_id,"imagen_id":self.imagen_id}
         return json
+
+class NotaPedido(db.Model):
+    __tablename__="nota_pedidos"
+    id=db.Column(db.Integer,primary_key=True)
+    fecha_venta=db.Column(db.DateTime,default=datetime.now)
+    tipo_pago=db.Column(db.String(64),nullable=False)
+    cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
+    usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
+    motorizado=db.Column(db.String(64),nullable=False,default='-')
+    #comentario=db.Column(db.String(128),nullable=False,default="-")
+
+
+    productos=db.relationship('Producto',secondary=detalle_venta,
+                              backref=db.backref('nota_pedidos',lazy='dynamic'),
+                              lazy='dynamic')
+    total=db.Column(db.Numeric(precision=10,scale=2),default=0.00)
+
+    def __init__(self,tipo_pago,cliente_id,usuario_id,motorizado) -> None:
+        self.tipo_pago=tipo_pago
+        self.cliente_id=cliente_id
+        self.usuario_id=usuario_id
+        self.motorizado=motorizado
+
+    def get_productos(self):
+        """
+        Retorna una lista con los productos en la nota de pedido. solo nombre y cantidad.
+        """
+        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
+        lista_productos=[]
+        for producto,cantidad,dv_precio in detalles:
+            lista_productos.append({
+                "nombre":producto.get_nombre(),
+                "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
+                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale)))
+            })
+
+        return lista_productos
+    
+    def get_fecha_venta(self):
+        if self.fecha_venta is not None:
+            return self.fecha_venta.strftime('%d/%m/%Y')
+        return None
+
+    def get_json(self):
+        cliente=Cliente.query.filter_by(id=self.cliente_id).first()
+        usuario=Usuario.query.filter_by(id=self.usuario_id).first()
+        print(cliente.get_json())
+        print(usuario.get_json())
+        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.cliente_id,
+              "usuario":self.usuario_id,"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total}
+
+        return json
+    
+    def get_id(self):
+        return self.id
 
 class Tipo(db.Model):
     __tablename__="tipos"

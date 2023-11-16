@@ -3,6 +3,7 @@ from config import config
 from .routes.auth import auth_scope
 from .routes.producto import producto_scope
 from .routes.articulo import articulo_scope
+from .routes.nota_pedido import nota_scope
 from .models.models import db,login_manager,Role,Tipo,Imagen
 from flask_migrate import Migrate
 
@@ -22,4 +23,6 @@ def create_app(config_name):
     app.register_blueprint(auth_scope,url_prefix="/auth")
     app.register_blueprint(producto_scope,url_prefix="/producto")
     app.register_blueprint(articulo_scope,url_prefix="/articulo")
+    app.register_blueprint(nota_scope,url_prefix="/nota")
+
     return app
