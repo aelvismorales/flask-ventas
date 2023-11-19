@@ -86,11 +86,14 @@ def login():
     u_recuerdame=False if data.get("recuerdame") is None else data.get("recuerdame")
 
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
-    if usuario.verificar_contraseña(u_contraseña):
-        login_user(usuario,remember=u_recuerdame)
-        response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200}),200)
+    if usuario is not None:
+        if usuario.verificar_contraseña(u_contraseña):
+            login_user(usuario,remember=u_recuerdame)
+            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200}),200)
+        else:
+            response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
     else:
-        response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
+        response=make_response(jsonify({"mensaje":"El usuario no existe en la base de datos","http_code": 500}),500)
 
     response.headers["Content-type"]="application/json"
     return response

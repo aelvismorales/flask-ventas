@@ -207,6 +207,7 @@ class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
     fecha_venta=db.Column(db.DateTime,default=datetime.now)
+    #DEFINIR QUE TIPOS DE PAGOS SE REALIZAN
     tipo_pago=db.Column(db.String(64),nullable=False)
     cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
     usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
@@ -245,11 +246,17 @@ class NotaPedido(db.Model):
             return self.fecha_venta.strftime('%d/%m/%Y')
         return None
 
+    def get_tipo(self):
+        return self.tipo_pago
+    
+    def get_total(self):
+        return self.total
+
     def get_json(self):
-        cliente=Cliente.query.filter_by(id=self.cliente_id).first()
-        usuario=Usuario.query.filter_by(id=self.usuario_id).first()
-        print(cliente.get_json())
-        print(usuario.get_json())
+        #cliente=Cliente.query.filter_by(id=self.cliente_id).first()
+        #usuario=Usuario.query.filter_by(id=self.usuario_id).first()
+        #print(cliente.get_json())
+        #print(usuario.get_json())
         json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.cliente_id,
               "usuario":self.usuario_id,"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total}
 
