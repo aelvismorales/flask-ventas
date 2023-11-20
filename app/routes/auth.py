@@ -192,19 +192,25 @@ def editar(id):
 @administrador_requerido
 def eliminar(id):
     usuario=Usuario.query.get(id)
+    
     if request.method=='DELETE' and usuario is not None:
+        img_id=usuario.get_imagen_id()
+        img=Imagen.query.filter_by(id=img_id).first()
+        path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()  
+        
         db.session.delete(usuario)
         db.session.commit()
+        if os.path.exists(path) and (img_id.get_id()!=1 or img_id.get_id()!=2):
+            os.remove(path)
         response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente al Usuario","http_code":200}),200)
         response.headers['Content-type']="application/json"
         return response
     
-    elif request.method=='DELETE' and usuario is None:
+    elif (request.method=='DELETE' or request.method=='GET') and usuario is None:
         response=make_response(jsonify({"mensaje": "El usuario que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
         response.headers['Content-type']="application/json"
         return response
 
-    # TO DO VERIFICAR IF STATEMENTS SI ENVIAN UN ID QUE NO ES VALIDO ENTONCES EL RESPONSE DE GET NO FUNCIONARA.
     response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar al Usuario %s" % usuario.nombre,"usuario":usuario.get_json(),"http_code":200}),200)
     response.headers['Content-type']="application/json"
     return response
@@ -213,6 +219,17 @@ def eliminar(id):
 @administrador_requerido
 def ver_usuarios():
     usuarios=Usuario.query.all()
+    json_usuario=[]
+    for u in usuarios:
+        json_usuario.append(u.get_json())
+    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+    response.headers["Content-type"]="application/json"
+    return response
+
+@auth_scope.route('/usuarios/delivery',methods=['GET'])
+@administrador_requerido
+def ver_usuarios_delivery():
+    usuarios=Usuario.query.filter_by(role_id=4).all()
     json_usuario=[]
     for u in usuarios:
         json_usuario.append(u.get_json())
@@ -230,4 +247,11 @@ def ver_imagen(id):
     img_id=usuario.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
 
-    return send_from_directory('../'+current_app.config['UPLOAD_PATH_PERFILES'],img.get_filename())
+    path=current_app.config['UPLOAD_PATH_PERFILES']+'/'+img.get_filename()          
+    if os.path.exists(path):
+        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PERFILES'],img.get_filename())
+    else:
+        usuario.imagen_id=1
+        db.session.commit()
+
+        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PERFILES'],'usuario_perfil.png')
