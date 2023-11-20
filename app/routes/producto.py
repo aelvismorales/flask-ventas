@@ -184,9 +184,6 @@ def buscar_producto():
         return response
     
 
-
-    
-
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
 def ver_producto(id_producto):
     producto=Producto.query.filter_by(id=id_producto).first()
@@ -196,5 +193,14 @@ def ver_producto(id_producto):
         return response
     img_id=producto.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
-    return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())
+    path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()          
+    if os.path.exists(path):
+        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())
+    else:
+        producto.imagen_id=3
+        db.session.commit()
+
+        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],'pollo_inicial.png')
+
+
 

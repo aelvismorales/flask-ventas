@@ -1,6 +1,9 @@
 from os import environ
 from dotenv import load_dotenv
 load_dotenv()
+
+CORS_CONFIG = {"resources": {"/*": {"origins": "*"}}}
+
 class Config():
     SECRET_KEY="4KK#ASDA"
     DEBUG=False
