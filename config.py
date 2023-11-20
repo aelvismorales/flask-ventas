@@ -2,8 +2,8 @@ from os import environ
 from dotenv import load_dotenv
 load_dotenv()
 
-CORS_CONFIG = {"resources": {"/*": {"origins": ["http://localhost:61656"],"supports_credentials":True}}}
-#CORS_CONFIG = {"resources": {"/*": {"origins": "*","CORS_SUPPORTS_CREDENTIALS":True}}}
+#CORS_CONFIG = {"resources": {"/*": {"origins": ["http://localhost:61656"],"supports_credentials":False}}}
+CORS_CONFIG = {"resources": {"/*": {"origins": "*"}}}
 
 
 class Config():
