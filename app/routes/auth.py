@@ -1,3 +1,4 @@
+from datetime import timedelta
 import json
 from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app
 from flask_login import login_user,logout_user,login_required
@@ -83,7 +84,7 @@ def login():
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
-    u_recuerdame=False if data.get("recuerdame") is None else data.get("recuerdame")
+    u_recuerdame=False if data.get("recuerdame") is None else True
 
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
     if usuario is not None:
