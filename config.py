@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #CORS_CONFIG = {"resources": {"/*": {"origins": ["http://localhost:61656"],"supports_credentials":False}}}
-CORS_CONFIG = {"resources": {"/*": {"origins": "*"}}}
+CORS_CONFIG = {"resources": {"/*": {"origins": [environ.get('CORS_CF')] if environ.get('CORS_CF') is not None else '*'}}}
 
 
 class Config():
