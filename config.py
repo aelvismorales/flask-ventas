@@ -7,7 +7,7 @@ CORS_CONFIG = {"resources": {"/*": {"origins": "*"}}}
 
 
 class Config():
-    SECRET_KEY="4KK#ASDA"
+    SECRET_KEY=environ.get('SECRET_KEY')
     DEBUG=False
     TESTING=False
     SQLALCHEMY_DATABASE_URI=environ.get('DB_DEV')

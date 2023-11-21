@@ -1,6 +1,5 @@
 from datetime import timedelta
-import json
-from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app
+from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app,session
 from flask_login import login_user,logout_user,login_required
 from werkzeug.utils import secure_filename
 from ..decorators import permiso_requerido,administrador_requerido
@@ -10,6 +9,11 @@ import os
 
 auth_scope=Blueprint("auth",__name__)
 
+@auth_scope.before_request
+def before_request():
+    session.permanent=True
+    session.modified=True
+    current_app.permanent_session_lifetime=timedelta(hours=4)
 #TODO DEFINIRLO COMO SOLO ACCESO A ADMINISTRADOR
 # Modificar y que al iniciar el sistema verifique si existe un administrador en caso de no serlo se creara uno por defecto al iniciar.
 @auth_scope.route('/registro',methods=['POST'])
@@ -89,7 +93,7 @@ def login():
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
     if usuario is not None:
         if usuario.verificar_contraseña(u_contraseña):
-            login_user(usuario,remember=u_recuerdame)
+            login_user(usuario)
             response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200}),200)
         else:
             response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
@@ -159,21 +163,30 @@ def editar(id):
                         return response
                     #Removing the last image of producto
                     path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
-                    if os.path.exists(path) and last_image.get_id()!=1:
+                    if os.path.exists(path) and (last_image.get_id()!=1 or last_image.get_id()!=2):
                         os.remove(path)
-                        #db.session.delete(last_image)
-                        #db.session.commit()
-                        #print(producto.get_imagen_id())
-                        mensaje_eliminado="Se elimino la imagen anterior correctamente"
+                        final_filename=u_nombre+file_ext
+                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
+                        img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
+                        db.session.add(img)
+                        db.session.commit()
 
-                    final_filename=u_nombre+file_ext
-                    imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
-                    img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
-                    db.session.add(img)
-                    db.session.commit()
-                    usuario.imagen_id=img.get_id()
- 
- 
+                        usuario.imagen_id=img.get_id()
+                        db.session.commit()
+
+                        db.session.delete(last_image)
+                        db.session.commit()
+                        mensaje_eliminado="Se elimino la imagen anterior correctamente"
+                    elif (last_image.get_id()==1 or last_image.get_id()==2):
+                        final_filename=u_nombre+file_ext
+                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
+                        img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
+                        db.session.add(img)
+                        db.session.commit()
+
+                        usuario.imagen_id=img.get_id()
+                        db.session.commit()
+
         try:
             usuario.nombre=u_nombre
             usuario.role_id=rol.get_id()

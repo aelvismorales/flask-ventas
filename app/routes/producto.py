@@ -165,7 +165,6 @@ def eliminar(id):
         db.session.commit()
         if os.path.exists(path) and img_id!=3:
             os.remove(path)
-
         response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el producto","http_code":200}),200)
         response.headers['Content-type']="application/json"
         return response
