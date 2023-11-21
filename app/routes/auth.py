@@ -14,6 +14,8 @@ def before_request():
     session.permanent=True
     session.modified=True
     current_app.permanent_session_lifetime=timedelta(hours=4)
+
+
 #TODO DEFINIRLO COMO SOLO ACCESO A ADMINISTRADOR
 # Modificar y que al iniciar el sistema verifique si existe un administrador en caso de no serlo se creara uno por defecto al iniciar.
 @auth_scope.route('/registro',methods=['POST'])
@@ -256,6 +258,7 @@ def ver_imagen(id):
     usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:
         response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}),404)
+        #response.set_cookie('session',session.get('_user_id'),max_age=64800)
         response.headers['Content-type']="application/json"
         return response
     img_id=usuario.get_imagen_id()

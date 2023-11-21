@@ -7,10 +7,6 @@ from datetime import datetime
 db=SQLAlchemy()
 
 login_manager=LoginManager()
-login_manager.login_view="auth.login"
-login_manager.refresh_view = 'auth.login'
-login_manager.needs_refresh_message = (u"Session timed out, please re-login")
-login_manager.needs_refresh_message_category = "info"
 scale = 2
 
 @login_manager.user_loader

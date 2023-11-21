@@ -21,6 +21,11 @@ def create_app(config_name):
         Tipo.insertar_tipos()
         Imagen.insertar_fotos()
     migrate.init_app(app,db)
+    login_manager.session_protection = "strong"
+    login_manager.login_view="auth.login"
+    login_manager.refresh_view = 'auth.login'
+    login_manager.needs_refresh_message = (u"Session timed out, please re-login")
+    login_manager.needs_refresh_message_category = "info"
     login_manager.init_app(app)
     cors.init_app(app, **CORS_CONFIG)
     app.register_blueprint(auth_scope,url_prefix="/auth")
