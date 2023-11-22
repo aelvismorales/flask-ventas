@@ -1,7 +1,7 @@
 from flask import Blueprint,request,make_response,jsonify,current_app,send_from_directory
 from flask_login import login_required
 from werkzeug.utils import secure_filename
-from ..decorators import administrador_requerido,token_required
+from ..decorators import token_required
 from ..models.models import Producto,Tipo,db,Imagen
 from .general import validar_imagen
 import os

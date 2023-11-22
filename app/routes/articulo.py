@@ -1,7 +1,6 @@
 from flask import Blueprint,request,jsonify,make_response
-
 from ..models.models import Articulo,db
-from ..decorators import administrador_requerido,token_required
+from ..decorators import token_required
 
 
 articulo_scope=Blueprint("articulo",__name__)

@@ -1,18 +1,10 @@
 from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash,check_password_hash
-from flask_login import LoginManager,UserMixin,AnonymousUserMixin
 from datetime import datetime
 
 db=SQLAlchemy()
-
-login_manager=LoginManager()
-scale = 2
-
-@login_manager.user_loader
-def load_user(user_id):
-    return Usuario.query.get(int(user_id))
-
+scale=2
 class Permission:
     VER_APLICACION=1
     CREAR_NOTA=2
@@ -21,7 +13,7 @@ class Permission:
     ADMINISTRADOR=16
 
 
-class Usuario(UserMixin,db.Model):
+class Usuario(db.Model):
     __tablename__='usuarios'
     id=db.Column(db.Integer,primary_key=True)
     nombre=db.Column(db.String(64),unique=True,index=True)
@@ -79,17 +71,6 @@ class Usuario(UserMixin,db.Model):
     
     def get_rol(self):
         return self.role.get_nombre()
-
-
-
-class AnonymousUser(AnonymousUserMixin):
-    def can(self,permiso):
-        return False
-    def is_administrador(self):
-        return False   
-    
-login_manager.anonymous_user=AnonymousUser
-
 
 class Role(db.Model):
     __tablename__='roles'
@@ -171,8 +152,6 @@ class Cliente(db.Model):
     def get_id(self):
         return self.id
 
-
-
 detalle_venta=db.Table('detalle_venta',
                        db.Column('nota_id',db.Integer,db.ForeignKey('nota_pedidos.id')),
                        db.Column('producto_id',db.Integer,db.ForeignKey('productos.id')),
@@ -180,7 +159,6 @@ detalle_venta=db.Table('detalle_venta',
                        db.Column('dv_precio',db.Numeric(precision=10,scale=2))
                        )
     
-
 class Producto(db.Model):
     __tablename__="productos"
     id=db.Column(db.Integer,primary_key=True)

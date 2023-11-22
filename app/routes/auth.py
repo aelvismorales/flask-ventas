@@ -1,9 +1,8 @@
 from datetime import timedelta
 import datetime
 from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app,session
-from flask_login import login_user,logout_user,login_required
 from werkzeug.utils import secure_filename
-from ..decorators import permiso_requerido,administrador_requerido,token_required
+from ..decorators import token_required
 from ..models.models import Usuario,db,Imagen,Role
 from .general import validar_imagen
 import jwt
@@ -11,12 +10,6 @@ import jwt
 import os
 
 auth_scope=Blueprint("auth",__name__)
-
-@auth_scope.before_request
-def before_request():
-    session.permanent=True
-    session.modified=True
-    current_app.permanent_session_lifetime=timedelta(hours=4)
 
 
 #TODO DEFINIRLO COMO SOLO ACCESO A ADMINISTRADOR
@@ -93,7 +86,6 @@ def login():
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
-    #u_recuerdame=False if data.get("recuerdame") is None else True
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
 
     if usuario is not None:
@@ -102,7 +94,6 @@ def login():
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
 
-            #login_user(usuario)
             response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token}),200)
         else:
             response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
@@ -118,7 +109,6 @@ def logout(current_user):
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
-    #logout_user()
     response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
     response.headers['Content-type']="application/json"
     return response
@@ -163,9 +153,6 @@ def buscar_nombre(current_user,nombre):
 @auth_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required
 def editar(current_user,id):
-    """ 
-        RECIBIR UN FORMULARIO IMAGEN ?
-    """
     if not current_user.is_administrador():
         response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
         response.headers["Content-type"]="application/json"

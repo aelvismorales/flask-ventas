@@ -1,10 +1,9 @@
 import datetime
 from decimal import Decimal
 from flask import Blueprint,request,make_response,jsonify
-from flask_login import login_required
 from sqlalchemy import asc
 from ..models.models import NotaPedido,Cliente,db,detalle_venta
-from ..decorators import administrador_requerido,token_required
+from ..decorators import token_required
 
 nota_scope=Blueprint('nota_pedido',__name__)
 
@@ -208,6 +207,10 @@ def eliminar(current_user,id):
     
     elif request.method=='DELETE' and nota is None:
         response=make_response(jsonify({"mensaje": "El nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response.headers['Content-type']="application/json"
+        return response
+    elif (request.method=='DELETE' or request.method=='GET') and nota is None:
+        response=make_response(jsonify({"mensaje": "La nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
         response.headers['Content-type']="application/json"
         return response
     # TO DO VERIFICAR IF STATEMENTS SI ENVIAN UN ID QUE NO ES VALIDO ENTONCES EL RESPONSE DE GET NO FUNCIONARA.
