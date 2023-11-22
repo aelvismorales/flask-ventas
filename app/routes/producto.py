@@ -1,7 +1,7 @@
 from flask import Blueprint,request,make_response,jsonify,current_app,send_from_directory
 from flask_login import login_required
 from werkzeug.utils import secure_filename
-from ..decorators import administrador_requerido
+from ..decorators import administrador_requerido,token_required
 from ..models.models import Producto,Tipo,db,Imagen
 from .general import validar_imagen
 import os
@@ -9,9 +9,8 @@ import os
 producto_scope=Blueprint("producto",__name__)
 
 @producto_scope.route('/crear',methods=['POST'])
-@login_required
-@administrador_requerido
-def crear():
+@token_required
+def crear(current_user):
     """
     Esta ruta recibe un formulario con los siguiente datos
         nombre : POLLO ENTERO
@@ -20,6 +19,12 @@ def crear():
         file: img.png
     Finalmente, la respuesta es en formato Json, indicando la situacion de la solicitud.
     """
+    
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     p_nombre=request.form.get("nombre").upper().strip()
     p_precio=request.form.get("precio")
     p_tipo= "General" if request.form.get("tipo") is None else request.form.get("tipo")
@@ -75,10 +80,14 @@ def crear():
     return response
 
 @producto_scope.route('/editar/<id>',methods=['GET','PUT'])
-@login_required
-@administrador_requerido
-def editar(id):
+@token_required
+def editar(current_user,id):
     # CAMBIAR EL NOMBRE DE LA IMAGEN SI ES QUE SE CAMBIA EL NOMBRE DEL PRODUCTO ?
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     producto=Producto.query.get(id)
     if request.method=="PUT":
         p_nombre=request.form.get("nombre").upper().strip()
@@ -151,9 +160,13 @@ def editar(id):
     return response
 
 @producto_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
-@login_required
-@administrador_requerido
-def eliminar(id):
+@token_required
+def eliminar(current_user,id):
+
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
     producto=Producto.query.get(id)
 
     if request.method=='DELETE' and producto is not None:
@@ -178,7 +191,7 @@ def eliminar(id):
     return response
 
 @producto_scope.route('/buscar',methods=['GET'])
-@login_required
+@token_required
 def buscar_producto():
     tipo=request.args.get('tipo',default='*',type=str)
     nombre=request.args.get('nombre',default='pollo',type=str).replace('_',' ').upper()
@@ -203,6 +216,7 @@ def buscar_producto():
     
 
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
+@token_required
 def ver_producto(id_producto):
     producto=Producto.query.filter_by(id=id_producto).first()
     if producto is None:

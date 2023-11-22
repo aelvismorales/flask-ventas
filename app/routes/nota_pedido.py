@@ -4,12 +4,12 @@ from flask import Blueprint,request,make_response,jsonify
 from flask_login import login_required,current_user
 from sqlalchemy import asc
 from ..models.models import NotaPedido,Cliente,db,detalle_venta
-from ..decorators import administrador_requerido
+from ..decorators import administrador_requerido,token_required
 
 nota_scope=Blueprint('nota_pedido',__name__)
 
 @nota_scope.route('/crear',methods=['POST'])
-@login_required
+@token_required
 def crear():
     data=request.json
     np_tipo_pago=data.get("tipo")
@@ -81,7 +81,7 @@ def crear():
 
 
 @nota_scope.route('/ver/<id>',methods=['GET'])
-@login_required
+@token_required
 def ver(id):
     nota=NotaPedido.query.get(id)
     if nota is None:
@@ -94,9 +94,14 @@ def ver(id):
     return response
 
 @nota_scope.route('/resumen',methods=['GET','POST'])
-@login_required
-@administrador_requerido
-def resumen():
+@token_required
+def resumen(current_user):
+
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+
     fecha_inicio=request.args.get('fecha_inicio',default=(datetime.datetime.now()).strftime('%Y/%m/%d'),type=str)
     fecha_fin=request.args.get('fecha_fin',default=(datetime.datetime.now()+datetime.timedelta(days=1)).strftime('%Y/%m/%d'),type=str)
     np_motorizado=request.args.get('motorizado',default='-',type=str)
@@ -162,10 +167,14 @@ def resumen():
 
 
 @nota_scope.route('/anular/<id>',methods=['PUT'])
-@login_required
-@administrador_requerido
-def anular(id):
-#DEBERIAS PODER CONVERTIRLO A VENTA NUEVAMENTE QUIZAS HACER UN COMBO BOX Y CAMBIARLO A TU DISPOSICION EL TIPO DE VENTA    
+@token_required
+def anular(current_user,id):
+#DEBERIAS PODER CONVERTIRLO A VENTA NUEVAMENTE QUIZAS HACER UN COMBO BOX Y CAMBIARLO A TU DISPOSICION EL TIPO DE VENTA  
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     nota=NotaPedido.query.get(id)
     if nota is None:
         response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}),404)
@@ -181,9 +190,14 @@ def anular(id):
         return response
     
 @nota_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
-@login_required
-@administrador_requerido
+@token_required
 def eliminar(id):
+    
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     nota=NotaPedido.query.get(id)
     if request.method=='DELETE' and nota is not None:
         db.session.delete(nota)

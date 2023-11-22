@@ -1,10 +1,13 @@
 from datetime import timedelta
+import datetime
 from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app,session
 from flask_login import login_user,logout_user,login_required
 from werkzeug.utils import secure_filename
-from ..decorators import permiso_requerido,administrador_requerido
+from ..decorators import permiso_requerido,administrador_requerido,token_required
 from ..models.models import Usuario,db,Imagen,Role
 from .general import validar_imagen
+import jwt
+
 import os
 
 auth_scope=Blueprint("auth",__name__)
@@ -90,13 +93,17 @@ def login():
     data=request.json
     u_nombre=data.get("nombre")
     u_contraseña=data.get("contraseña")
-    u_recuerdame=False if data.get("recuerdame") is None else True
-
+    #u_recuerdame=False if data.get("recuerdame") is None else True
     usuario=Usuario.query.filter_by(nombre=u_nombre).first()
+
     if usuario is not None:
         if usuario.verificar_contraseña(u_contraseña):
-            login_user(usuario)
-            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200}),200)
+            token=jwt.encode({'id':usuario.get_id(),'rol':usuario.get_rol(),'auth':True,
+                              'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
+                              },key=current_app.config['SECRET_KEY'])
+
+            #login_user(usuario)
+            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token}),200)
         else:
             response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
     else:
@@ -106,22 +113,26 @@ def login():
     return response
 
 @auth_scope.route('/logout',methods=['POST'])
-@login_required
+@token_required
 def logout():
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
-    logout_user()
+    #logout_user()
     response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
     response.headers['Content-type']="application/json"
     return response
 
-
 # USUARIO
 #Quizas utilizar url queries para obtener los datos ordenados y que no lo realice el front ?
 @auth_scope.route('/buscar/<string:nombre>',methods=['GET'])
-@administrador_requerido
-def buscar_nombre(nombre):
+@token_required
+def buscar_nombre(current_user,nombre):
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+
     nombre=nombre.replace("_"," ")
     usuarios=Usuario.query.filter(Usuario.nombre.like('%'+nombre+'%')).all()
     json_usuario=[]
@@ -138,11 +149,15 @@ def buscar_nombre(nombre):
     return response
 
 @auth_scope.route('/editar/<id>',methods=['GET','PUT'])
-@administrador_requerido
-def editar(id):
+@token_required
+def editar(current_user,id):
     """ 
         RECIBIR UN FORMULARIO IMAGEN ?
     """
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
     usuario=Usuario.query.get(id)
     if request.method=='PUT':
         u_nombre=request.form.get("nombre").strip()
@@ -205,8 +220,14 @@ def editar(id):
     return response
 
 @auth_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
-@administrador_requerido
-def eliminar(id):
+@token_required
+def eliminar(current_user,id):
+
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     usuario=Usuario.query.get(id)
     
     if request.method=='DELETE' and usuario is not None:
@@ -232,8 +253,13 @@ def eliminar(id):
     return response
 
 @auth_scope.route('/usuarios/all',methods=['GET'])
-@administrador_requerido
-def ver_usuarios():
+@token_required
+def ver_usuarios(current_user):
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+
     usuarios=Usuario.query.all()
     json_usuario=[]
     for u in usuarios:
@@ -243,8 +269,13 @@ def ver_usuarios():
     return response
 
 @auth_scope.route('/usuarios/delivery',methods=['GET'])
-@administrador_requerido
-def ver_usuarios_delivery():
+@token_required
+def ver_usuarios_delivery(current_user):
+    if not current_user.is_administrador():
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response.headers["Content-type"]="application/json"
+        return response
+    
     usuarios=Usuario.query.filter_by(role_id=4).all()
     json_usuario=[]
     for u in usuarios:
@@ -254,6 +285,7 @@ def ver_usuarios_delivery():
     return response
 
 @auth_scope.route('/ver/imagen/<id>',methods=['GET'])
+@token_required
 def ver_imagen(id):
     usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:

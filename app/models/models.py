@@ -76,6 +76,11 @@ class Usuario(UserMixin,db.Model):
     
     def get_id(self):
         return self.id
+    
+    def get_rol(self):
+        return self.role.get_nombre()
+
+
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self,permiso):
