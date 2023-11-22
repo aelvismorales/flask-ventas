@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 from flask import Blueprint,request,make_response,jsonify
-from flask_login import login_required,current_user
+from flask_login import login_required
 from sqlalchemy import asc
 from ..models.models import NotaPedido,Cliente,db,detalle_venta
 from ..decorators import administrador_requerido,token_required
@@ -10,7 +10,7 @@ nota_scope=Blueprint('nota_pedido',__name__)
 
 @nota_scope.route('/crear',methods=['POST'])
 @token_required
-def crear():
+def crear(current_user):
     data=request.json
     np_tipo_pago=data.get("tipo")
     np_motorizado=data.get("motorizado","-")
@@ -82,7 +82,7 @@ def crear():
 
 @nota_scope.route('/ver/<id>',methods=['GET'])
 @token_required
-def ver(id):
+def ver(current_user,id):
     nota=NotaPedido.query.get(id)
     if nota is None:
         response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}),404)
@@ -191,7 +191,7 @@ def anular(current_user,id):
     
 @nota_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
 @token_required
-def eliminar(id):
+def eliminar(current_user,id):
     
     if not current_user.is_administrador():
         response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)

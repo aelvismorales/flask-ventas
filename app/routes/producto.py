@@ -217,7 +217,7 @@ def buscar_producto():
 
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
 @token_required
-def ver_producto(id_producto):
+def ver_producto(current_user,id_producto):
     producto=Producto.query.filter_by(id=id_producto).first()
     if producto is None:
         response=make_response(jsonify({"mensaje":"El producto con ese ID no se encuentra","http_code":404}),404)

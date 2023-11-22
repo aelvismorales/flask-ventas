@@ -114,7 +114,7 @@ def login():
 
 @auth_scope.route('/logout',methods=['POST'])
 @token_required
-def logout():
+def logout(current_user):
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
@@ -286,7 +286,7 @@ def ver_usuarios_delivery(current_user):
 
 @auth_scope.route('/ver/imagen/<id>',methods=['GET'])
 @token_required
-def ver_imagen(id):
+def ver_imagen(current_user,id):
     usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:
         response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}),404)
