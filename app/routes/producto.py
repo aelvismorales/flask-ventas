@@ -192,7 +192,7 @@ def eliminar(current_user,id):
 
 @producto_scope.route('/buscar',methods=['GET'])
 @token_required
-def buscar_producto():
+def buscar_producto(current_user):
     tipo=request.args.get('tipo',default='*',type=str)
     nombre=request.args.get('nombre',default='pollo',type=str).replace('_',' ').upper()
 

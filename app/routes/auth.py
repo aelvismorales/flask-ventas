@@ -123,6 +123,18 @@ def logout(current_user):
     response.headers['Content-type']="application/json"
     return response
 
+
+@auth_scope.route('/token-still-valid',methods=['GET'])
+@token_required
+def token_still_valid(current_user):
+    token=jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
+                              'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
+                              },key=current_app.config['SECRET_KEY'])
+    response=make_response(jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}),200)
+    response.headers["Content-type"]="application/json"
+    return response
+
+
 # USUARIO
 #Quizas utilizar url queries para obtener los datos ordenados y que no lo realice el front ?
 @auth_scope.route('/buscar/<string:nombre>',methods=['GET'])
