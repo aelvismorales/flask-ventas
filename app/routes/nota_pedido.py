@@ -71,10 +71,10 @@ def crear(current_user):
             nota.total=total_sale
             db.session.commit()
 
-            response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is not None","nota":nota.get_json(),"http_code":200}),200)
+            response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is not None","nota":nota.get_json(),"http_code":200}))
 
     else:
-        response=make_response(jsonify({"mensaje":"Alguno de los campos ingresados no es valido o esta vacio","http_code":500}),500)
+        response=make_response(jsonify({"mensaje":"Alguno de los campos ingresados no es valido o esta vacio","http_code":500}))
 
     response.headers['Content-type']='application/json'
     return response
@@ -84,7 +84,7 @@ def crear(current_user):
 def ver(current_user,id):
     nota=NotaPedido.query.get(id)
     if nota is None:
-        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     
@@ -97,7 +97,7 @@ def ver(current_user,id):
 def resumen(current_user):
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
 
@@ -131,11 +131,11 @@ def resumen(current_user):
                 else:
                     continue
             response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                            ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200)
+                                            ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
             response.headers['Content-type']="application/json"
             return response
         else:
-            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":404}),404)
+            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":404}))
             response.headers['Content-type']="application/json"
             return response
     
@@ -156,11 +156,11 @@ def resumen(current_user):
             else:
                 continue
         response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                        ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200)
+                                        ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
         response.headers['Content-type']="application/json"
         return response
     else:
-            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":500}),500)
+            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":500}))
             response.headers['Content-type']="application/json"
             return response
 
@@ -170,13 +170,13 @@ def resumen(current_user):
 def anular(current_user,id):
 #DEBERIAS PODER CONVERTIRLO A VENTA NUEVAMENTE QUIZAS HACER UN COMBO BOX Y CAMBIARLO A TU DISPOSICION EL TIPO DE VENTA  
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
     nota=NotaPedido.query.get(id)
     if nota is None:
-        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
 
@@ -184,7 +184,7 @@ def anular(current_user,id):
         tipo=request.args.get('tipo',default='ANULADO',type=str).upper()
         nota.tipo_pago=tipo
         db.session.commit()
-        response=make_response(jsonify({"mensaje":"La nota de pedido cambio a %s" % tipo,"http_code":200},200))
+        response=make_response(jsonify({"mensaje":"La nota de pedido cambio a %s" % tipo,"http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     
@@ -193,28 +193,34 @@ def anular(current_user,id):
 def eliminar(current_user,id):
     
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
     nota=NotaPedido.query.get(id)
+
+    if nota is None:
+        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
+        response.headers['Content-type']="application/json"
+        return response
+    
     if request.method=='DELETE' and nota is not None:
         db.session.delete(nota)
         db.session.commit()
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el nota","http_code":200}),200)
+        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el nota","http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     
     elif request.method=='DELETE' and nota is None:
-        response=make_response(jsonify({"mensaje": "El nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response=make_response(jsonify({"mensaje": "El nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
         response.headers['Content-type']="application/json"
         return response
     elif (request.method=='DELETE' or request.method=='GET') and nota is None:
-        response=make_response(jsonify({"mensaje": "La nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response=make_response(jsonify({"mensaje": "La nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
         response.headers['Content-type']="application/json"
         return response
-    # TO DO VERIFICAR IF STATEMENTS SI ENVIAN UN ID QUE NO ES VALIDO ENTONCES EL RESPONSE DE GET NO FUNCIONARA.
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el nota %s" % nota.id,"nota":nota.get_json(),"http_code":200}),200)
+    
+    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el nota %s" % nota.id,"nota":nota.get_json(),"http_code":200}))
     response.headers['Content-type']="application/json"
     return response
 

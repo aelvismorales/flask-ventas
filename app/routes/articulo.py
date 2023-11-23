@@ -10,7 +10,7 @@ articulo_scope=Blueprint("articulo",__name__)
 def crear(current_user):
     
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -39,7 +39,7 @@ def crear(current_user):
     except Exception as e:
         db.session.rollback()
         response=make_response(jsonify({"mensaje": "El articulo no se pudo crear","error":e.args[0],
-                                        "http_code":500}),500)
+                                        "http_code":500}))
         
     response.headers["Content-type"]="application/json"    
     return response
@@ -49,13 +49,13 @@ def crear(current_user):
 def ver(current_user,id): #unuse?
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
     articulo=Articulo.query.get(id)
     if articulo is None:
-        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     
@@ -68,23 +68,23 @@ def ver(current_user,id): #unuse?
 def eliminar(current_user,id):
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
 
     articulo=Articulo.query.get(id)
     if articulo is None:
-        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     
     if request.method=='DELETE' and articulo is not None:
         db.session.delete(articulo)
         db.session.commit()
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el articulo","http_code":200}),200)
+        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el articulo","http_code":200}))
         response.headers['Content-type']="application/json"
         return response
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el articulo %s" % articulo.nombre,"usuario":articulo.get_json(),"http_code":200}),200)
+    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el articulo %s" % articulo.nombre,"usuario":articulo.get_json(),"http_code":200}))
     response.headers['Content-type']="application/json"
     return response
 
@@ -93,13 +93,13 @@ def eliminar(current_user,id):
 def editar(current_user,id):
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
 
     articulo=Articulo.query.get(id)
     if articulo is None:
-        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El articulo con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     if request.method=='PUT':
@@ -123,11 +123,11 @@ def editar(current_user,id):
         except Exception as e:
             db.session.rollback()
             response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
-                                            "http_code":500}),500)
+                                            "http_code":500}))
             response.headers["Content-type"]="application/json"
             return response
     
-    response=make_response(jsonify({"messaje":"Se envian datos del articulo %s" % id,"articulo":articulo.get_json(),"http_code":200},200))
+    response=make_response(jsonify({"messaje":"Se envian datos del articulo %s" % id,"articulo":articulo.get_json(),"http_code":200}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -136,7 +136,7 @@ def editar(current_user,id):
 def buscar_articulo(current_user,nombre):
     
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -146,9 +146,9 @@ def buscar_articulo(current_user,nombre):
     if request.method=='GET' and len(articulos)>0:
         for ar in articulos:
             json_articulos.append(ar.get_json())
-        response=make_response(jsonify({"articulos":json_articulos,"http_code":200}),200)
+        response=make_response(jsonify({"articulos":json_articulos,"http_code":200}))
         response.headers['Content-type']='application/json'
         return response
-    response=make_response(jsonify({"mensaje":"No se pudo encontrar el articulo","http_code":404}),404)
+    response=make_response(jsonify({"mensaje":"No se pudo encontrar el articulo","http_code":404}))
     response.headers['Content-type']='application/json'
     return response

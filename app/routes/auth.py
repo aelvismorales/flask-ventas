@@ -40,7 +40,7 @@ def registro():
         response=make_response(jsonify({
             "mensaje": "El usuario ya existe en la base de datos",
             "http_code":409
-        }),409)
+        }))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -49,7 +49,7 @@ def registro():
         response=make_response(jsonify({
             "mensaje": "El rol no existe en la base de datos",
             "http_code":409
-        }),409)
+        }))
         response.headers["Content-type"]="application/json"
         return response
     try:
@@ -59,12 +59,12 @@ def registro():
         response=make_response(jsonify({"mensaje":"El usuario se registro correctamente",
                                         "http_code":201,
                                         "usuario":nuevo_usuario.nombre
-                                        }),201)
+                                        }))
     except Exception as e:
         db.session.rollback()
         response=make_response(jsonify({"mensaje":"No se puede registrar al usuario",
                                         "http_code":500,
-                                        "error":e.args[0]}),500)
+                                        "error":e.args[0]}))
     response.headers["Content-type"]="application/json" 
     return response
 
@@ -94,11 +94,11 @@ def login():
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
 
-            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token}),200)
+            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token}))
         else:
-            response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400)
+            response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}))
     else:
-        response=make_response(jsonify({"mensaje":"El usuario no existe en la base de datos","http_code": 500}),500)
+        response=make_response(jsonify({"mensaje":"El usuario no existe en la base de datos","http_code": 500}))
 
     response.headers["Content-type"]="application/json"
     return response
@@ -109,7 +109,7 @@ def logout(current_user):
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
-    response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200)
+    response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}))
     response.headers['Content-type']="application/json"
     return response
 
@@ -120,7 +120,7 @@ def token_still_valid(current_user):
     token=jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-    response=make_response(jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}),200)
+    response=make_response(jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -131,7 +131,7 @@ def token_still_valid(current_user):
 @token_required
 def buscar_nombre(current_user,nombre):
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
 
@@ -142,11 +142,11 @@ def buscar_nombre(current_user,nombre):
         for u in usuarios:
             json_usuario.append(u.get_json())
         
-        response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+        response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
         response.headers["Content-type"]="application/json"
         return response
     
-    response=make_response(jsonify({"mensaje":"No se pudo encontrar a ningun usuario con ese nombre","http_code":404}),404)
+    response=make_response(jsonify({"mensaje":"No se pudo encontrar a ningun usuario con ese nombre","http_code":404}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -154,10 +154,16 @@ def buscar_nombre(current_user,nombre):
 @token_required
 def editar(current_user,id):
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     usuario=Usuario.query.get(id)
+
+    if usuario is None:
+        response=make_response(jsonify({"messaje":"No se encuentra ningun Usuario con ese ID","http_code":500}))
+        response.headers["Content-type"]="application/json"
+        return response
+
     if request.method=='PUT':
         u_nombre=request.form.get("nombre").strip()
         u_rol= "Usuario" if request.form.get("rol") is None else request.form.get("rol")
@@ -174,7 +180,7 @@ def editar(current_user,id):
                     file_ext=os.path.splitext(filename)[1]
                     if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
                         response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                        ,"http_code":400}),400)
+                                                        ,"http_code":400}))
                         response.headers["Content-type"]="application/json"
                         return response
                     #Removing the last image of producto
@@ -207,14 +213,14 @@ def editar(current_user,id):
             usuario.nombre=u_nombre
             usuario.role_id=rol.get_id()
             response=make_response(jsonify({"mensaje": "El usuario se ha actualizado correctamente",
-                                            "adicional":mensaje_eliminado,"http_code": 200}),200)
+                                            "adicional":mensaje_eliminado,"http_code": 200}))
             response.headers['Content-type']="application/json"
             db.session.commit()
             return response
         except Exception as e:
-            response=make_response(jsonify({"mensaje":"No se ha podido actualizar los datos del usuario","error": e.args[0],"http_code":500}),500)
+            response=make_response(jsonify({"mensaje":"No se ha podido actualizar los datos del usuario","error": e.args[0],"http_code":500}))
 
-    response=make_response(jsonify({"messaje":"Se envian datos del Usuario %s" % id,"usuario":usuario.get_json(),"http_code":200},200))
+    response=make_response(jsonify({"messaje":"Se envian datos del Usuario %s" % id,"usuario":usuario.get_json(),"http_code":200}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -223,7 +229,7 @@ def editar(current_user,id):
 def eliminar(current_user,id):
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -238,16 +244,16 @@ def eliminar(current_user,id):
         db.session.commit()
         if os.path.exists(path) and (img_id.get_id()!=1 or img_id.get_id()!=2):
             os.remove(path)
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente al Usuario","http_code":200}),200)
+        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente al Usuario","http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     
     elif (request.method=='DELETE' or request.method=='GET') and usuario is None:
-        response=make_response(jsonify({"mensaje": "El usuario que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response=make_response(jsonify({"mensaje": "El usuario que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
         response.headers['Content-type']="application/json"
         return response
 
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar al Usuario %s" % usuario.nombre,"usuario":usuario.get_json(),"http_code":200}),200)
+    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar al Usuario %s" % usuario.nombre,"usuario":usuario.get_json(),"http_code":200}))
     response.headers['Content-type']="application/json"
     return response
 
@@ -255,7 +261,7 @@ def eliminar(current_user,id):
 @token_required
 def ver_usuarios(current_user):
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
 
@@ -263,7 +269,7 @@ def ver_usuarios(current_user):
     json_usuario=[]
     for u in usuarios:
         json_usuario.append(u.get_json())
-    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -271,7 +277,7 @@ def ver_usuarios(current_user):
 @token_required
 def ver_usuarios_delivery(current_user):
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -279,7 +285,7 @@ def ver_usuarios_delivery(current_user):
     json_usuario=[]
     for u in usuarios:
         json_usuario.append(u.get_json())
-    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}),200)
+    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -288,8 +294,7 @@ def ver_usuarios_delivery(current_user):
 def ver_imagen(current_user,id):
     usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:
-        response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}),404)
-        #response.set_cookie('session',session.get('_user_id'),max_age=64800)
+        response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     img_id=usuario.get_imagen_id()

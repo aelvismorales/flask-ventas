@@ -21,7 +21,7 @@ def crear(current_user):
     """
     
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
@@ -34,7 +34,7 @@ def crear(current_user):
         response= make_response(jsonify({
             "mensaje": "El producto ya existe en la base de datos",
             "http_code": 409
-        }),409)
+        }))
         response.headers["Content-type"]="application/json"
         return response
 
@@ -55,7 +55,7 @@ def crear(current_user):
             file_ext=os.path.splitext(filename)[1]
             if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
                 response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                ,"http_code":400}),400)
+                                                ,"http_code":400}))
                 response.headers["Content-type"]="application/json"
                 return response
             final_filename=p_nombre+file_ext
@@ -71,11 +71,11 @@ def crear(current_user):
         response=make_response(jsonify({
             "mensaje":"Se creo el producto satisfactoriamente",
             "http_code":201
-        }),201)
+        }))
     except Exception as e:
         db.session.rollback()
         response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
-                                        "http_code":500}),500)
+                                        "http_code":500}))
     response.headers["Content-type"]="application/json"    
     return response
 
@@ -84,11 +84,17 @@ def crear(current_user):
 def editar(current_user,id):
     # CAMBIAR EL NOMBRE DE LA IMAGEN SI ES QUE SE CAMBIA EL NOMBRE DEL PRODUCTO ?
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     
     producto=Producto.query.get(id)
+
+    if producto is None:
+        response=make_response(jsonify({"mensaje":"El producto con ese ID no se encuentra","http_code":404}))
+        response.headers['Content-type']="application/json"
+        return response
+
     if request.method=="PUT":
         p_nombre=request.form.get("nombre").upper().strip()
         p_precio=float(request.form.get("precio"))
@@ -105,7 +111,7 @@ def editar(current_user,id):
                     file_ext=os.path.splitext(filename)[1]
                     if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
                         response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                        ,"http_code":400}),400)
+                                                        ,"http_code":400}))
                         response.headers["Content-type"]="application/json"
                         return response
 
@@ -142,7 +148,7 @@ def editar(current_user,id):
                 "mensaje":"Se actualizo el producto correctamente",
                 "adicional":mensaje_eliminado,
                 "http_code":200
-            }),200)
+            }))
             producto.nombre=p_nombre
             producto.precio=p_precio
             producto.tipo_id=tipo.get_id()
@@ -152,10 +158,10 @@ def editar(current_user,id):
         except Exception as e:
             db.session.rollback()
             response=make_response(jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
-                                            "http_code":500}),500)
+                                            "http_code":500}))
         response.headers["Content-type"]="application/json"    
         return response
-    response=make_response(jsonify({"messaje":"Se envian datos del producto %s" % id,"producto":producto.get_json(),"http_code":200},200))
+    response=make_response(jsonify({"messaje":"Se envian datos del producto %s" % id,"producto":producto.get_json(),"http_code":200}))
     response.headers["Content-type"]="application/json"
     return response
 
@@ -164,7 +170,7 @@ def editar(current_user,id):
 def eliminar(current_user,id):
 
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}),403)
+        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
         response.headers["Content-type"]="application/json"
         return response
     producto=Producto.query.get(id)
@@ -178,15 +184,15 @@ def eliminar(current_user,id):
         db.session.commit()
         if os.path.exists(path) and img_id!=3:
             os.remove(path)
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el producto","http_code":200}),200)
+        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el producto","http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     
     elif (request.method=='DELETE' or request.method=='GET') and producto is None:
-        response=make_response(jsonify({"mensaje": "El producto que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500},500))
+        response=make_response(jsonify({"mensaje": "El producto que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
         response.headers['Content-type']="application/json"
         return response
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el Producto %s" % producto.nombre,"usuario":producto.get_json(),"http_code":200}),200)
+    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el Producto %s" % producto.nombre,"usuario":producto.get_json(),"http_code":200}))
     response.headers['Content-type']="application/json"
     return response
 
@@ -201,7 +207,7 @@ def buscar_producto(current_user):
         productos=Producto.query.all()
         for pr in productos:
             json_producto.append(pr.get_json())
-        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response=make_response(jsonify({"productos":json_producto,"http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     elif request.method=='GET' and tipo in ['General','Pollos','Chifa'] and nombre=='-': # Lo ideal es un in ('General','Pollo','Chifa') para el tipo pero aun no se definen todas los tipos , "ideal enviar el ID del tipo tambien"
@@ -209,7 +215,7 @@ def buscar_producto(current_user):
         productos=Producto.query.filter(Producto.tipo_id==tipo_id.get_id()).all()
         for pr in productos:
             json_producto.append(pr.get_json())
-        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response=make_response(jsonify({"productos":json_producto,"http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     elif request.method=='GET' and tipo in ['General','Pollos','Chifa'] and nombre!='-':
@@ -217,11 +223,11 @@ def buscar_producto(current_user):
         productos=Producto.query.filter(Producto.nombre.like('%'+nombre+'%'),Producto.tipo_id==tipo_id.get_id()).all()
         for pr in productos:
             json_producto.append(pr.get_json())
-        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response=make_response(jsonify({"productos":json_producto,"http_code":200}))
         response.headers['Content-type']="application/json"
         return response
     else:
-        response=make_response(jsonify({"mensaje":"No se pudo obtener ningun producto","http_code":200},200))
+        response=make_response(jsonify({"mensaje":"No se pudo obtener ningun producto","http_code":200}))
         response.headers['Content-type']="application/json"
         return response
 
@@ -231,7 +237,7 @@ def buscar_producto(current_user):
 def ver_producto(current_user,id_producto):
     producto=Producto.query.filter_by(id=id_producto).first()
     if producto is None:
-        response=make_response(jsonify({"mensaje":"El producto con ese ID no se encuentra","http_code":404}),404)
+        response=make_response(jsonify({"mensaje":"El producto con ese ID no se encuentra","http_code":404}))
         response.headers['Content-type']="application/json"
         return response
     img_id=producto.get_imagen_id()
