@@ -78,7 +78,6 @@ def crear(current_user):
     response.headers['Content-type']='application/json'
     return response
 
-
 @nota_scope.route('/ver/<id>',methods=['GET'])
 @token_required
 def ver(current_user,id):

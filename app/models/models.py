@@ -184,7 +184,8 @@ class Producto(db.Model):
     
     def get_json(self):
         json={"id":self.id,"nombre":"%s" % self.nombre, "precio":f'{self.precio:.2f}',"tipo_id":self.tipo_id,"imagen_id":self.imagen_id}
-        return json
+        
+        return json if json is not None else {}
 
 class NotaPedido(db.Model):
     __tablename__="nota_pedidos"

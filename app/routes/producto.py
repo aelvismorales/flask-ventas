@@ -194,18 +194,25 @@ def eliminar(current_user,id):
 @token_required
 def buscar_producto(current_user):
     tipo=request.args.get('tipo',default='*',type=str)
-    nombre=request.args.get('nombre',default='pollo',type=str).replace('_',' ').upper()
+    nombre=request.args.get('nombre',default='-',type=str).replace('_',' ').upper()
 
-    print(tipo,nombre)
-    productos=Producto.query.filter(Producto.nombre.like('%'+nombre+'%')).all()
     json_producto=[]
-    if request.method=='GET' and tipo=='*' and len(productos) > 0:
+    if request.method=='GET' and tipo=='*':
+        productos=Producto.query.all()
         for pr in productos:
             json_producto.append(pr.get_json())
         response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
         response.headers['Content-type']="application/json"
         return response
-    elif request.method=='GET' and tipo !='*': # Lo ideal es un in ('General','Pollo','Chifa') para el tipo pero aun no se definen todas los tipos , "ideal enviar el ID del tipo tambien"
+    elif request.method=='GET' and tipo in ['General','Pollos','Chifa'] and nombre=='-': # Lo ideal es un in ('General','Pollo','Chifa') para el tipo pero aun no se definen todas los tipos , "ideal enviar el ID del tipo tambien"
+        tipo_id=Tipo.query.filter_by(nombre=tipo).first()
+        productos=Producto.query.filter(Producto.tipo_id==tipo_id.get_id()).all()
+        for pr in productos:
+            json_producto.append(pr.get_json())
+        response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
+        response.headers['Content-type']="application/json"
+        return response
+    elif request.method=='GET' and tipo in ['General','Pollos','Chifa'] and nombre!='-':
         tipo_id=Tipo.query.filter_by(nombre=tipo).first()
         productos=Producto.query.filter(Producto.nombre.like('%'+nombre+'%'),Producto.tipo_id==tipo_id.get_id()).all()
         for pr in productos:
@@ -213,7 +220,11 @@ def buscar_producto(current_user):
         response=make_response(jsonify({"productos":json_producto,"http_code":200},200))
         response.headers['Content-type']="application/json"
         return response
-    
+    else:
+        response=make_response(jsonify({"mensaje":"No se pudo obtener ningun producto","http_code":200},200))
+        response.headers['Content-type']="application/json"
+        return response
+
 
 @producto_scope.route('/ver/<id_producto>',methods=['GET'])
 @token_required
