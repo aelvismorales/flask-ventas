@@ -1,4 +1,5 @@
-import datetime
+
+from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 from flask import Blueprint,request,make_response,jsonify
 from sqlalchemy import asc
@@ -100,8 +101,8 @@ def resumen(current_user):
         response.headers["Content-type"]="application/json"
         return response
 
-    fecha_inicio=request.args.get('fecha_inicio',default=(datetime.datetime.now()).strftime('%Y/%m/%d'),type=str)
-    fecha_fin=request.args.get('fecha_fin',default=(datetime.datetime.now()+datetime.timedelta(days=1)).strftime('%Y/%m/%d'),type=str)
+    fecha_inicio=request.args.get('fecha_inicio',default=(datetime.now(timezone.utc)-timedelta(hours=5)).strftime('%Y/%m/%d'),type=str)
+    fecha_fin=request.args.get('fecha_fin',default=(datetime.now(timezone.utc)-timedelta(hours=5)+timedelta(days=1)).strftime('%Y/%m/%d'),type=str)
     np_motorizado=request.args.get('motorizado',default='-',type=str)
 
     json_notas_pedidos=[]

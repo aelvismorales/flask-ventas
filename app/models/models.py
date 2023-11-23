@@ -1,7 +1,7 @@
 from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash,check_password_hash
-from datetime import datetime
+from datetime import datetime,timezone,timedelta
 
 db=SQLAlchemy()
 scale=2
@@ -190,7 +190,7 @@ class Producto(db.Model):
 class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
-    fecha_venta=db.Column(db.DateTime,default=datetime.now)
+    fecha_venta=db.Column(db.DateTime,default=datetime.now(timezone.utc)-timedelta(hours=5))
     tipo_pago=db.Column(db.String(64),nullable=False)
     #cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
     nombre=db.Column(db.String(64),nullable=False)
