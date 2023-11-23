@@ -1,8 +1,8 @@
-"""Modicando Tabla Usuario FK imagen
+"""v0.0
 
-Revision ID: dc146f64bb6e
-Revises: 8757d51df1e6
-Create Date: 2023-11-06 17:24:11.391685
+Revision ID: 9a4689a4232c
+Revises: 
+Create Date: 2023-11-22 19:43:48.217988
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'dc146f64bb6e'
-down_revision = '8757d51df1e6'
+revision = '9a4689a4232c'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -21,8 +21,8 @@ def upgrade():
     with op.batch_alter_table('productos', schema=None) as batch_op:
         batch_op.drop_constraint('FK_imagen_producto', type_='foreignkey')
         batch_op.drop_constraint('FK_tipo_producto', type_='foreignkey')
-        batch_op.create_foreign_key('FK_imagen_producto', 'imagenes', ['imagen_id'], ['id'], ondelete='SET DEFAULT')
         batch_op.create_foreign_key('FK_tipo_producto', 'tipos', ['tipo_id'], ['id'], ondelete='SET DEFAULT')
+        batch_op.create_foreign_key('FK_imagen_producto', 'imagenes', ['imagen_id'], ['id'], ondelete='SET DEFAULT')
 
     with op.batch_alter_table('usuarios', schema=None) as batch_op:
         batch_op.drop_constraint('fk_Role', type_='foreignkey')
@@ -42,8 +42,8 @@ def downgrade():
         batch_op.create_foreign_key('fk_Role', 'roles', ['role_id'], ['id'])
 
     with op.batch_alter_table('productos', schema=None) as batch_op:
-        batch_op.drop_constraint('FK_tipo_producto', type_='foreignkey')
         batch_op.drop_constraint('FK_imagen_producto', type_='foreignkey')
+        batch_op.drop_constraint('FK_tipo_producto', type_='foreignkey')
         batch_op.create_foreign_key('FK_tipo_producto', 'tipos', ['tipo_id'], ['id'])
         batch_op.create_foreign_key('FK_imagen_producto', 'imagenes', ['imagen_id'], ['id'])
 

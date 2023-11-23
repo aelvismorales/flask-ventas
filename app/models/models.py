@@ -132,25 +132,25 @@ class Role(db.Model):
             db.session.add(role)
         db.session.commit()
 
-class Cliente(db.Model):
-    __tablename__="clientes"
-    id=db.Column(db.Integer,primary_key=True)
-    nombre=db.Column(db.String(64),nullable=False)
-    direccion=db.Column(db.String(64),nullable=False)
-    telefono=db.Column(db.String(64),nullable=False,unique=True)
-    nota_pedidos=db.relationship('NotaPedido',backref='cliente',lazy='dynamic')
+#class Cliente(db.Model):
+#    __tablename__="clientes"
+#    id=db.Column(db.Integer,primary_key=True)
+#    nombre=db.Column(db.String(64),nullable=False)
+#    direccion=db.Column(db.String(64),nullable=False)
+#    telefono=db.Column(db.String(64),nullable=False,unique=True)
+#    nota_pedidos=db.relationship('NotaPedido',backref='cliente',lazy='dynamic')
 
-    def __init__(self,nombre,direccion,telefono) -> None:
-        self.nombre=nombre
-        self.direccion=direccion
-        self.telefono=telefono
+#    def __init__(self,nombre,direccion,telefono) -> None:
+#        self.nombre=nombre
+#        self.direccion=direccion
+#        self.telefono=telefono
 
-    def get_json(self):
-        json={"id":self.id,"nombre":self.nombre,"direccion":self.direccion,"telefono":self.telefono}
-        return json
+#    def get_json(self):
+#        json={"id":self.id,"nombre":self.nombre,"direccion":self.direccion,"telefono":self.telefono}
+#        return json
     
-    def get_id(self):
-        return self.id
+#    def get_id(self):
+#        return self.id
 
 detalle_venta=db.Table('detalle_venta',
                        db.Column('nota_id',db.Integer,db.ForeignKey('nota_pedidos.id')),
@@ -191,9 +191,11 @@ class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
     fecha_venta=db.Column(db.DateTime,default=datetime.now)
-    #DEFINIR QUE TIPOS DE PAGOS SE REALIZAN
     tipo_pago=db.Column(db.String(64),nullable=False)
-    cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
+    #cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
+    nombre=db.Column(db.String(64),nullable=False)
+    direccion=db.Column(db.String(64),nullable=False)
+    telefono=db.Column(db.String(64),nullable=True)
     usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
     motorizado=db.Column(db.String(64),nullable=False,default='-')
     #comentario=db.Column(db.String(128),nullable=False,default="-")
@@ -204,11 +206,14 @@ class NotaPedido(db.Model):
                               lazy='dynamic')
     total=db.Column(db.Numeric(precision=10,scale=2),default=0.00)
 
-    def __init__(self,tipo_pago,cliente_id,usuario_id,motorizado) -> None:
+    def __init__(self,tipo_pago,usuario_id,motorizado,nombre,direccion,telefono) -> None:
         self.tipo_pago=tipo_pago
-        self.cliente_id=cliente_id
         self.usuario_id=usuario_id
         self.motorizado=motorizado
+        self.nombre=nombre
+        self.direccion=direccion
+        self.telefono=telefono
+        
 
     def get_productos(self):
         """
@@ -241,7 +246,7 @@ class NotaPedido(db.Model):
         #usuario=Usuario.query.filter_by(id=self.usuario_id).first()
         #print(cliente.get_json())
         #print(usuario.get_json())
-        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.cliente_id,
+        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
               "usuario":self.usuario_id,"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total}
 
         return json

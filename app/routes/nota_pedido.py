@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from flask import Blueprint,request,make_response,jsonify
 from sqlalchemy import asc
-from ..models.models import NotaPedido,Cliente,db,detalle_venta
+from ..models.models import NotaPedido,db,detalle_venta
 from ..decorators import token_required
 
 nota_scope=Blueprint('nota_pedido',__name__)
@@ -19,9 +19,9 @@ def crear(current_user):
     #np_paga=data.get("paga-con",0.0)
     np_productos=data.get("productos",[])
 
-    cliente_reg=Cliente.query.filter_by(telefono=np_telefono).first()
-    if np_telefono != "-" and cliente_reg is None:
-        nuevo_cliente=Cliente(np_comprador,np_direccion,np_telefono)
+    #cliente_reg=Cliente.query.filter_by(telefono=np_telefono).first()
+    #if np_telefono != "-" and cliente_reg is None:
+    """  nuevo_cliente=Cliente(np_comprador,np_direccion,np_telefono)
         db.session.add(nuevo_cliente)
         db.session.commit()
         print(nuevo_cliente.get_id())
@@ -46,12 +46,12 @@ def crear(current_user):
             nota.total=total_sale
             db.session.commit()
 
-            response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is None","nota":nota.get_json(),"http_code":200}),200)
+            response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is None","nota":nota.get_json(),"http_code":200}),200)"""
 
 
-    elif np_telefono!="-" and cliente_reg is not None:
+    if np_telefono is not None and np_comprador is not None and np_direccion is not None:
         if request.method=='POST':
-            nota=NotaPedido(np_tipo_pago,cliente_reg.get_id(),current_user.get_id(),np_motorizado)
+            nota=NotaPedido(np_tipo_pago,current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono)
             db.session.add(nota)
             db.session.commit()
 
@@ -73,7 +73,7 @@ def crear(current_user):
             response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is not None","nota":nota.get_json(),"http_code":200}),200)
 
     else:
-        response=make_response(jsonify({"mensaje":"Alguno de los campos ingresados no es valido","http_code":500}),500)
+        response=make_response(jsonify({"mensaje":"Alguno de los campos ingresados no es valido o esta vacio","http_code":500}),500)
 
     response.headers['Content-type']='application/json'
     return response
@@ -130,7 +130,7 @@ def resumen(current_user):
                 else:
                     continue
             response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                            ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa}),200)
+                                            ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200)
             response.headers['Content-type']="application/json"
             return response
         else:
@@ -155,7 +155,7 @@ def resumen(current_user):
             else:
                 continue
         response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                        ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa}),200)
+                                        ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200)
         response.headers['Content-type']="application/json"
         return response
     else:
