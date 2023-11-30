@@ -94,7 +94,7 @@ def login():
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
 
-            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token}))
+            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol()}))
         else:
             response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}))
     else:

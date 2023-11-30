@@ -21,6 +21,7 @@ class Usuario(db.Model):
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
     imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
     nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
+    #mesas=db.relationship('Mesa',backref='usuario',lazy='dynamic',cascade='all,delete-orphan')
 
 
     # Para que el role_id sea uno se debe eliminar el rol de la siguiente manera
@@ -71,6 +72,9 @@ class Usuario(db.Model):
     
     def get_rol(self):
         return self.role.get_nombre()
+    
+    def get_nombre(self):
+        return self.nombre
 
 class Role(db.Model):
     __tablename__='roles'
@@ -186,13 +190,14 @@ class Producto(db.Model):
         json={"id":self.id,"nombre":"%s" % self.nombre, "precio":f'{self.precio:.2f}',"tipo_id":self.tipo_id,"imagen_id":self.imagen_id}
         
         return json if json is not None else {}
+    def get_id(self):
+        return self.id
 
 class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
     fecha_venta=db.Column(db.DateTime,default=datetime.now(timezone.utc)-timedelta(hours=5))
     tipo_pago=db.Column(db.String(64),nullable=False)
-    #cliente_id=db.Column(db.Integer,db.ForeignKey('clientes.id'))
     nombre=db.Column(db.String(64),nullable=False)
     direccion=db.Column(db.String(64),nullable=False)
     telefono=db.Column(db.String(64),nullable=True)
@@ -205,14 +210,19 @@ class NotaPedido(db.Model):
                               backref=db.backref('nota_pedidos',lazy='dynamic'),
                               lazy='dynamic')
     total=db.Column(db.Numeric(precision=10,scale=2),default=0.00)
+    estado_pago=db.Column(db.Boolean,default=False) # True-Cancelado False Por cancelar
+    estado_atendido=db.Column(db.Boolean,default=False) # True Atendido False No Atendido
+    mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id',ondelete='SET DEFAULT',),nullable=True,server_default=None)
 
-    def __init__(self,tipo_pago,usuario_id,motorizado,nombre,direccion,telefono) -> None:
+    def __init__(self,tipo_pago,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None) -> None:
         self.tipo_pago=tipo_pago
         self.usuario_id=usuario_id
         self.motorizado=motorizado
         self.nombre=nombre
         self.direccion=direccion
         self.telefono=telefono
+        self.estado_pago=estado_pago
+        self.mesa_id=mesa_id
         
 
     def get_productos(self):
@@ -224,6 +234,21 @@ class NotaPedido(db.Model):
         for producto,cantidad,dv_precio in detalles:
             lista_productos.append({
                 "nombre":producto.get_nombre(),
+                "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
+                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale)))
+            })
+
+        return lista_productos
+    
+    def get_productos_id(self):
+        """
+        Retorna una lista con los productos en la nota de pedido. solo nombre y cantidad.
+        """
+        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
+        lista_productos=[]
+        for producto,cantidad,dv_precio in detalles:
+            lista_productos.append({
+                "producto_id":producto.get_id(),
                 "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
                 "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale)))
             })
@@ -242,17 +267,38 @@ class NotaPedido(db.Model):
         return self.total
 
     def get_json(self):
-        #cliente=Cliente.query.filter_by(id=self.cliente_id).first()
-        #usuario=Usuario.query.filter_by(id=self.usuario_id).first()
-        #print(cliente.get_json())
-        #print(usuario.get_json())
         json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
-              "usuario":self.usuario_id,"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total}
+              "usuario":self.usuario.get_nombre(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id}
 
         return json
     
     def get_id(self):
         return self.id
+
+class Mesa(db.Model):
+    __tablename__='mesas'
+    id=db.Column(db.Integer,primary_key=True)
+    piso=db.Column(db.Integer,nullable=False)
+    numero_mesa=db.Column(db.Integer,nullable=False)
+    estado_mesa=db.Column(db.Boolean,default=False) # True Ocupado False Desocupado
+    #usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
+    nota_pedidos=db.relationship('NotaPedido',backref='mesa',lazy='dynamic',cascade='all,delete-orphan')
+
+    def __init__(self,piso,numero_mesa) -> None:
+        self.piso=piso
+        self.numero_mesa=numero_mesa
+    
+    def set_estado(self,estado):
+        if estado is not None:
+            self.estado=estado
+        else:
+            self.estado=False
+    
+    def get_json(self):
+        json={"id":self.id,"piso":self.piso,"numero_mesa":self.numero_mesa,"estado_mesa":self.estado_mesa}
+        return json
+    
+
 
 class Tipo(db.Model):
     __tablename__="tipos"
