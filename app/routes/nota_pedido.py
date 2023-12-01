@@ -39,23 +39,29 @@ def find_modified_deleted_and_added(data1, data2):
 @token_required
 def crear(current_user):
     data=request.json
-    np_tipo_pago=data.get("tipo","EFECTIVO")
+    np_pago_efectivo=data.get("pago_efectivo",0.00)
+    np_pago_visa=data.get("pago_visa",0.00)
+    np_pago_yape=data.get("pago_yape",0.00)
+
     np_motorizado=data.get("motorizado","-")
     np_comprador=data.get("nombre_comprador","VARIOS").strip().upper()
     np_direccion=data.get("direccion","Local").strip().upper()
     np_telefono=data.get("telefono","-").strip()
     np_estado_pago= True if data.get("estado_pago")=='True' else False
+    np_comentario=data.get("comentario","")
 
     #np_paga=data.get("paga-con",0.0)
     np_productos=data.get("productos",[])
 
+    #TODO VERIFICAR QUE LA SUMA TOTAL DE LOS PAGOS SEA IGUAL A LA DEL TOTAL SALE DESDE FRONT DADO QUE EN BACKEND NECESITARE EL TOTAL SALE PREVIO A CREAR LA NOTA DE PEDIDO QUE TAMBIEN ME LO PUEDEN ENVIAR DESDE FRONT.
     if np_telefono is not None and np_comprador is not None and np_direccion is not None:
         if request.method=='POST':
             if current_user.get_rol()=='Mozo':
                 np_mesa_id=data.get("mesa_id")
-                nota=NotaPedido(np_tipo_pago,current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id)
+                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_comentario)
             else:    
-                nota=NotaPedido(np_tipo_pago,current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago)
+                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,comentario=np_comentario)
+
             db.session.add(nota)
             db.session.commit()
 
@@ -72,6 +78,8 @@ def crear(current_user):
                 db.session.execute(detalle_)
             
             nota.total=total_sale
+
+
             db.session.commit()
 
             response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is not None","nota":nota.get_json(),"http_code":200}))
@@ -93,14 +101,15 @@ def editar(current_user,id):
     
     if request.method == 'PUT':
         data=request.json
-        np_tipo_pago=data.get("tipo")
+        np_pago_efectivo=data.get("pago_efectivo",0.00)
+        np_pago_visa=data.get("pago_visa",0.00)
+        np_pago_yape=data.get("pago_yape",0.00)
         np_motorizado=data.get("motorizado","-")
         np_comprador=data.get("nombre_comprador").strip().upper()
         np_direccion=data.get("direccion").strip().upper()
         np_telefono=data.get("telefono","-").strip()
         np_estado_pago= True if data.get("estado_pago")=='True' else False
-
-        #np_paga=data.get("paga-con",0.0)
+        np_comentario=data.get("comentario","")
         np_productos=data.get("productos",[])
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
         try:
@@ -116,12 +125,16 @@ def editar(current_user,id):
                         )
                 db.session.execute(detalle)
 
-            nota.tipo_pago=np_tipo_pago
+            nota.pago_efectivo=np_pago_efectivo
+            nota.pago_yape=np_pago_yape
+            nota.pago_visa=np_pago_visa
+
             nota.nombre=np_comprador
             nota.direccion=np_direccion
             nota.telefono=np_telefono
             nota.motorizado=np_motorizado
             nota.estado_pago=np_estado_pago
+            nota.comentario=np_comentario
             nota.total=total_sale
             
             db.session.commit()
@@ -216,9 +229,10 @@ def resumen(current_user):
     np_motorizado=request.args.get('motorizado',default='-',type=str)
 
     json_notas_pedidos=[]
-    cancelado_total=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
+
+    cancelado_general_total=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
+    cancelado_efectivo=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
     cancelado_yape=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
-    cancelado_plin=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
     cancelado_visa=Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
 
     if request.method=='POST':
@@ -230,18 +244,13 @@ def resumen(current_user):
         if len(notas_pedidos_resumen)>0:
             for notas in notas_pedidos_resumen:
                 json_notas_pedidos.append(notas.get_json())
-                if notas.get_tipo() == 'CANCELADO':
-                    cancelado_total+=notas.get_total()
-                elif notas.get_tipo()=='CANCELADO-YAPE':
-                    cancelado_yape+=notas.get_total()
-                elif notas.get_tipo()=='CANCELADO-PLIN':
-                    cancelado_plin+=notas.get_total()
-                elif notas.get_tipo()=='CANCELADO-VISA':
-                    cancelado_visa+=notas.get_total()
-                else:
-                    continue
+                cancelado_general_total+=notas.get_total()
+                cancelado_efectivo+=notas.get_efectivo()
+                cancelado_yape+=notas.get_yape()
+                cancelado_visa=notas.get_visa()
+
             response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                            ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
+                                            ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
             response.headers['Content-type']="application/json"
             return response
         else:
@@ -255,18 +264,12 @@ def resumen(current_user):
     if len(notas_pedidos_resumen)>0:
         for notas in notas_pedidos_resumen:
             json_notas_pedidos.append(notas.get_json())
-            if notas.get_tipo() == 'CANCELADO':
-                cancelado_total+=notas.get_total()
-            elif notas.get_tipo()=='CANCELADO-YAPE':
-                cancelado_yape+=notas.get_total()
-            elif notas.get_tipo()=='CANCELADO-PLIN':
-                cancelado_plin+=notas.get_total()
-            elif notas.get_tipo()=='CANCELADO-VISA':
-                cancelado_visa+=notas.get_total()
-            else:
-                continue
+            cancelado_general_total+=notas.get_total()
+            cancelado_efectivo+=notas.get_efectivo()
+            cancelado_yape+=notas.get_yape()
+            cancelado_visa=notas.get_visa()
         response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                        ,"cancelado_total":cancelado_total,"cancelado_yape":cancelado_yape,"cancelado_plin":cancelado_plin,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
+                                        ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
         response.headers['Content-type']="application/json"
         return response
     else:
@@ -338,7 +341,11 @@ def eliminar(current_user,id):
 @nota_scope.route('/notas-cocina',methods=['GET'])
 @token_required
 def notas_cocina(current_user):
-    notas=NotaPedido.query.filter_by(estado_atendido=False).all()
+    #TODO VERIFICAR QUE SEAN DEL DIA
+    fecha_inicio=(datetime.now(timezone.utc)-timedelta(hours=5)).strftime('%Y/%m/%d')
+    fecha_fin=(datetime.now(timezone.utc)-timedelta(hours=5)+timedelta(days=1)).strftime('%Y/%m/%d')
+    notas=NotaPedido.query.filter(NotaPedido.fecha_venta.between(fecha_inicio,fecha_fin),NotaPedido.estado_atendido==False).order_by(asc(NotaPedido.id)).all()
+    #notas=NotaPedido.query.filter_by(estado_atendido=False).all()
     json_notas=[]
     for nota in notas:
         json_notas.append(nota.get_json())

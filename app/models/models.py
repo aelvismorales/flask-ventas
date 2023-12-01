@@ -21,6 +21,8 @@ class Usuario(db.Model):
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
     imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
     nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
+    
+    # OCUPADO : TRUE OR FALSE;
     #mesas=db.relationship('Mesa',backref='usuario',lazy='dynamic',cascade='all,delete-orphan')
 
 
@@ -160,7 +162,8 @@ detalle_venta=db.Table('detalle_venta',
                        db.Column('nota_id',db.Integer,db.ForeignKey('nota_pedidos.id')),
                        db.Column('producto_id',db.Integer,db.ForeignKey('productos.id')),
                        db.Column('dv_cantidad',db.Numeric(precision=10,scale=2)),
-                       db.Column('dv_precio',db.Numeric(precision=10,scale=2))
+                       db.Column('dv_precio',db.Numeric(precision=10,scale=2)),
+                       db.Column('dv_atendido',db.Boolean(),default=False)
                        )
     
 class Producto(db.Model):
@@ -197,13 +200,16 @@ class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
     fecha_venta=db.Column(db.DateTime,default=datetime.now(timezone.utc)-timedelta(hours=5))
-    tipo_pago=db.Column(db.String(64),nullable=False)
+    #tipo_pago=db.Column(db.String(64),nullable=False)
+    pago_efectivo=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+    pago_yape=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+    pago_visa=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     nombre=db.Column(db.String(64),nullable=False)
     direccion=db.Column(db.String(64),nullable=False)
     telefono=db.Column(db.String(64),nullable=True)
     usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
     motorizado=db.Column(db.String(64),nullable=False,default='-')
-    #comentario=db.Column(db.String(128),nullable=False,default="-")
+    comentario=db.Column(db.String(128),nullable=False,default="-")
 
 
     productos=db.relationship('Producto',secondary=detalle_venta,
@@ -214,8 +220,10 @@ class NotaPedido(db.Model):
     estado_atendido=db.Column(db.Boolean,default=False) # True Atendido False No Atendido
     mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id',ondelete='SET DEFAULT',),nullable=True,server_default=None)
 
-    def __init__(self,tipo_pago,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None) -> None:
-        self.tipo_pago=tipo_pago
+    def __init__(self,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None,pago_efectivo=0.00,pago_yape=0.00,pago_visa=0.00,comentario="") -> None:
+        self.pago_efectivo=pago_efectivo
+        self.pago_yape=pago_yape
+        self.pago_visa=pago_visa
         self.usuario_id=usuario_id
         self.motorizado=motorizado
         self.nombre=nombre
@@ -223,19 +231,21 @@ class NotaPedido(db.Model):
         self.telefono=telefono
         self.estado_pago=estado_pago
         self.mesa_id=mesa_id
+        self.comentario=comentario
         
 
     def get_productos(self):
         """
         Retorna una lista con los productos en la nota de pedido. solo nombre y cantidad.
         """
-        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
+        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio,detalle_venta.c.dv_atendido).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
         lista_productos=[]
-        for producto,cantidad,dv_precio in detalles:
+        for producto,cantidad,dv_precio,dv_atendido in detalles:
             lista_productos.append({
                 "nombre":producto.get_nombre(),
                 "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
-                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale)))
+                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale))),
+                "atendido":dv_atendido
             })
 
         return lista_productos
@@ -257,17 +267,23 @@ class NotaPedido(db.Model):
     
     def get_fecha_venta(self):
         if self.fecha_venta is not None:
-            return self.fecha_venta.strftime('%d/%m/%Y')
+            return self.fecha_venta.strftime('%d/%m/%Y %H:%M:%S')
         return None
-
-    def get_tipo(self):
-        return self.tipo_pago
     
+    def get_efectivo(self):
+        return self.pago_efectivo
+    
+    def get_yape(self):
+        return self.pago_yape
+    
+    def get_visa(self):
+        return self.pago_visa
+
     def get_total(self):
         return self.total
 
     def get_json(self):
-        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"tipo_pago":self.tipo_pago,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
+        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"pago_efectivo":self.pago_efectivo,"pago_yape":self.pago_yape,"pago_visa":self.pago_visa,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
               "usuario":self.usuario.get_nombre(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id}
 
         return json
