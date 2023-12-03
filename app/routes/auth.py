@@ -9,12 +9,9 @@ from .general import validar_imagen
 import jwt
 import os
 
-
 auth_scope=Blueprint("auth",__name__)
 
 
-#TODO DEFINIRLO COMO SOLO ACCESO A ADMINISTRADOR
-# Modificar y que al iniciar el sistema verifique si existe un administrador en caso de no serlo se creara uno por defecto al iniciar.
 @auth_scope.route('/registro',methods=['POST'])
 def registro():
     """
