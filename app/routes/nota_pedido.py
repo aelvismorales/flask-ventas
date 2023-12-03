@@ -3,9 +3,9 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 from flask import Blueprint,request,make_response,jsonify
 from sqlalchemy import asc
-from ..models.models import NotaPedido,db,detalle_venta,Producto
+from ..models.models import NotaPedido,db,detalle_venta
 from ..decorators import token_required
-
+from ..errors.errors import *
 nota_scope=Blueprint('nota_pedido',__name__)
 
 
@@ -38,6 +38,42 @@ def find_modified_deleted_and_added(data1, data2):
 @nota_scope.route('/crear',methods=['POST'])
 @token_required
 def crear(current_user):
+    """
+    Crea una nota de pedido con los datos proporcionados.
+
+    Parámetros:
+    - current_user: El usuario actual que realiza la creación de la nota de pedido.
+
+    Ejemplo Json:
+    {
+        "nombre_comprador": "JUAN PEREZ",
+        "direccion": "AV. LOS PINOS 123",
+        "telefono": "987654321",
+        "pago_efectivo": 10.00,
+        "pago_visa": 0.00,
+        "pago_yape": 0.00,
+        "motorizado": "MOTORIZADO",
+        "estado_pago": "True",
+        "comentario": "SIN COMENTARIOS",
+        "productos": [
+            {
+                "producto_id": 1,
+                "cantidad": 1,
+                "precio": 10.00
+            },
+            {
+                "producto_id": 2,
+                "cantidad": 1,
+                "precio": 10.00
+            }
+        ]
+    }
+
+    Retorna:
+    - Un objeto JSON que contiene el mensaje de éxito, la información de la nota de pedido y el código HTTP 200 en caso de éxito.
+    - Un objeto JSON que contiene el mensaje de error y el código HTTP correspondiente en caso de fallo.
+
+    """
     data=request.json
     np_pago_efectivo=data.get("pago_efectivo",0.00)
     np_pago_visa=data.get("pago_visa",0.00)
@@ -52,6 +88,9 @@ def crear(current_user):
 
     #np_paga=data.get("paga-con",0.0)
     np_productos=data.get("productos",[])
+
+    if np_productos is None or len(np_productos)==0:
+        return handle_bad_request("No se puede crear una nota de pedido sin productos")
 
     #TODO VERIFICAR QUE LA SUMA TOTAL DE LOS PAGOS SEA IGUAL A LA DEL TOTAL SALE DESDE FRONT DADO QUE EN BACKEND NECESITARE EL TOTAL SALE PREVIO A CREAR LA NOTA DE PEDIDO QUE TAMBIEN ME LO PUEDEN ENVIAR DESDE FRONT.
     if np_telefono is not None and np_comprador is not None and np_direccion is not None:
@@ -78,26 +117,55 @@ def crear(current_user):
                 db.session.execute(detalle_)
             
             nota.total=total_sale
-
-
             db.session.commit()
-
-            response=make_response(jsonify({"mensaje":"Nota de pedido creado correctamente-is not None","nota":nota.get_json(),"http_code":200}))
-
+            return jsonify({"mensaje":"Nota de pedido creado correctamente","nota":nota.get_json(),"http_code":200}),200
     else:
-        response=make_response(jsonify({"mensaje":"Alguno de los campos ingresados no es valido o esta vacio","http_code":500}))
-
-    response.headers['Content-type']='application/json'
-    return response
+        return handle_bad_request("Alguno de los campos ingresados no es valido o esta vacio")
 
 @nota_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required
-def editar(current_user,id):
+def editar(current_user,id):    
+    """
+    Función para editar una nota de pedido.
+
+    Parámetros:
+    - current_user: Usuario actual.
+    - id: ID de la nota de pedido a editar.
+
+    Ejemplo Json:
+    {
+        "nombre_comprador": "JUAN PEREZ",
+        "direccion": "AV. LOS PINOS 123",
+        "telefono": "987654321",
+        "pago_efectivo": 10.00,
+        "pago_visa": 0.00,
+        "pago_yape": 0.00,
+        "motorizado": "MOTORIZADO",
+        "estado_pago": "True",
+        "comentario": "SIN COMENTARIOS",
+        "productos": [
+            {
+                "producto_id": 1,
+                "cantidad": 1,
+                "precio": 10.00
+            },
+            {
+                "producto_id": 2,
+                "cantidad": 1,
+                "precio": 10.00
+            }
+        ]
+    }
+    Retorna:
+    - Si el método de la solicitud es PUT:
+        - Si se actualiza la nota de pedido correctamente, retorna un JSON con el mensaje "Se actualizó la nota de pedido correctamente" y el código HTTP 200.
+        - Si ocurre un error al editar los datos, retorna un JSON con el mensaje "Error al editar los datos", el error específico y el código HTTP 500.
+    - Si el método de la solicitud es GET:
+        - Retorna un JSON con la información de la nota de pedido y el código HTTP 200.
+    """
     nota=NotaPedido.query.get(id)
     if not nota:
-        response=make_response(jsonify({"mensaje":"Nota de pedido no encontrada","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("Nota de pedido no encontrada")
     
     if request.method == 'PUT':
         data=request.json
@@ -138,34 +206,63 @@ def editar(current_user,id):
             nota.total=total_sale
             
             db.session.commit()
-            response=make_response(jsonify({"mensaje":"Se actualizo la nota de pedido correctamente","http_code":"200"}))
-            response.headers['Content-Type']='application/json'
-            return response
+            return jsonify({"mensaje":"Se actualizo la nota de pedido correctamente","http_code":"200"}),200
         except Exception as e:
             error=e.args[0]
             db.session.rollback()
-            response=make_response(jsonify({"mensaje":"Error al editar los datos","error":error,"http_code":500}))
-            response.headers['Content-Type']='application/json'
-            return response
+            return jsonify({"mensaje":"Error al editar los datos","error":error,"http_code":500}),500
+
     if request.method == 'GET':
-        response=make_response(jsonify({"nota":nota.get_json(),"http_code":"200"}))
-        response.headers['Content-Type']='application/json'
-        return response
+        return jsonify({"nota":nota.get_json(),"http_code":"200"}),200
 
 
 @nota_scope.route('/editar/mozo/<id_nota>',methods=['PUT','GET'])	
 @token_required
 def editar_mozo_nota(current_user,id_nota):
+    """
+    Edita la información de una nota de pedido
+    seleccionando los productos de una mesa en específico, seleccionada por el mozo.
+
+    Parámetros:
+    - current_user: El usuario actual.
+    - id_nota: El ID de la nota de pedido a editar.
+
+    Ejemplo Json:
+    {
+        "productos": [
+            {
+                "producto_id": 1,
+                "cantidad": 1,
+                "precio": 10.00
+            },
+            {
+                "producto_id": 2,
+                "cantidad": 1,
+                "precio": 10.00
+            }
+        ]
+    }
+
+    Métodos HTTP permitidos:
+    - PUT: Actualiza la información de la nota de pedido.
+    - GET: Obtiene la información de la nota de pedido.
+
+    Retorna:
+    - Si el método es PUT:
+        - Si la actualización es exitosa, retorna un mensaje de éxito y el código HTTP 200.
+        - Si ocurre un error durante la edición, retorna un mensaje de error y el código HTTP 500.
+    - Si el método es GET:
+        - Retorna la información de la nota de pedido y el código HTTP 200.
+
+    """
     nota=NotaPedido.query.get(id_nota)
     if not nota:
-        response=make_response(jsonify({"mensaje":"Nota de pedido no encontrada","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("Nota de pedido no encontrada")
     
     if request.method == 'PUT':
         data=request.json
         np_productos=data.get("productos",[]) # Nuevo
-        productos_nota=nota.get_productos_id() #Actual 
+        productos_nota=nota.get_productos_id() # Actual 
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
         
         modified_items, deleted_items, added_items = find_modified_deleted_and_added(productos_nota, np_productos)
@@ -187,42 +284,38 @@ def editar_mozo_nota(current_user,id_nota):
     
         try:
             db.session.commit()
-            response=make_response(jsonify({"mensaje":"Se actualizo la nota de pedido correctamente","http_code":"200"}))
-            response.headers['Content-Type']='application/json'
-            return response
-        
+            return jsonify({"mensaje":"Se actualizo la nota de pedido correctamente","http_code":"200"}),200
         except Exception as e:
             error=e.args[0]
             db.session.rollback()
-            response=make_response(jsonify({"mensaje":"Error al editar los datos","error":error,"http_code":500}))
-            response.headers['Content-Type']='application/json'
-            return response
+            return jsonify({"mensaje":"Error al editar los datos","error":error,"http_code":500}),500
     if request.method == 'GET':
-        response=make_response(jsonify({"nota":nota.get_json(),"http_code":"200"}))
-        response.headers['Content-Type']='application/json'
-        return response
+        return jsonify({"nota":nota.get_json(),"http_code":"200"}),200
 
 @nota_scope.route('/ver/<id>',methods=['GET'])
 @token_required
 def ver(current_user,id):
     nota=NotaPedido.query.get(id)
     if nota is None:
-        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("El nota con ese ID no se encuentra")
     
-    response=make_response(jsonify({"nota":nota.get_json()}))
-    response.headers['Content-type']="application/json"
-    return response
+    return jsonify({"nota":nota.get_json(),"http_code":200}),200
 
 @nota_scope.route('/resumen',methods=['GET','POST'])
 @token_required
 def resumen(current_user):
+    """
+    Obtiene el resumen de las notas de pedido, dependiendo de la fecha de inicio y fecha de fin.
 
+    Parámetros:
+    - current_user: El usuario actual.
+
+    Retorna:
+    - Un objeto JSON con el resumen de las notas de pedido, incluyendo la fecha de inicio, fecha de fin, notas de pedido, total cancelado, total en efectivo, total en Yape, total en Visa y el recuento de ventas.
+
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_forbidden("No tienes Autorizacion para acceder")
 
     fecha_inicio=request.args.get('fecha_inicio',default=(datetime.now(timezone.utc)-timedelta(hours=5)).strftime('%Y/%m/%d'),type=str)
     fecha_fin=request.args.get('fecha_fin',default=(datetime.now(timezone.utc)-timedelta(hours=5)+timedelta(days=1)).strftime('%Y/%m/%d'),type=str)
@@ -249,14 +342,10 @@ def resumen(current_user):
                 cancelado_yape+=notas.get_yape()
                 cancelado_visa=notas.get_visa()
 
-            response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                            ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
-            response.headers['Content-type']="application/json"
-            return response
+            return jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
+                            ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200
         else:
-            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":404}))
-            response.headers['Content-type']="application/json"
-            return response
+            return handle_not_found("No se pudo obtener las notas de pedido")
     
     # En caso sea un GET SIMPLE RETORNAMOS EL RESUMEN DEL DIA ACTUAL
     notas_pedidos_resumen=NotaPedido.query.filter(NotaPedido.fecha_venta.between(fecha_inicio,fecha_fin)).order_by(asc(NotaPedido.id)).all()
@@ -268,14 +357,10 @@ def resumen(current_user):
             cancelado_efectivo+=notas.get_efectivo()
             cancelado_yape+=notas.get_yape()
             cancelado_visa=notas.get_visa()
-        response=make_response(jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
-                                        ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}))
-        response.headers['Content-type']="application/json"
-        return response
+        return jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
+                        ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200
     else:
-            response=make_response(jsonify({"mensaje":"No se pudo obtener las notas de pedido","http_code":500}))
-            response.headers['Content-type']="application/json"
-            return response
+        return handle_not_found("No se pudo obtener las notas de pedido")
 
 
 @nota_scope.route('/anular/<id>',methods=['PUT'])
@@ -283,90 +368,101 @@ def resumen(current_user):
 def anular(current_user,id):
 #DEBERIAS PODER CONVERTIRLO A VENTA NUEVAMENTE QUIZAS HACER UN COMBO BOX Y CAMBIARLO A TU DISPOSICION EL TIPO DE VENTA  
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_forbidden("No tienes Autorizacion para acceder")
     
     nota=NotaPedido.query.get(id)
     if nota is None:
-        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("El nota con ese ID no se encuentra")
 
-    if request.method=='PUT' and nota is not None:
+    if request.method=='PUT':
         tipo=request.args.get('tipo',default='ANULADO',type=str).upper()
         nota.tipo_pago=tipo
         db.session.commit()
-        response=make_response(jsonify({"mensaje":"La nota de pedido cambio a %s" % tipo,"http_code":200}))
-        response.headers['Content-type']="application/json"
-        return response
+        return jsonify({"mensaje":"La nota de pedido cambio a %s" % tipo,"http_code":200}),200
     
 @nota_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
 @token_required
-def eliminar(current_user,id):
-    
+def eliminar(current_user,id):    
+    """
+    Elimina una nota de pedido.
+
+    Parámetros:
+    - current_user: El usuario actual.
+    - id: El ID de la nota de pedido a eliminar.
+
+    Retorna:
+    - Si el método de la solicitud es DELETE:
+        - Un objeto JSON con el mensaje de éxito y el código HTTP 200.
+    - Si el método de la solicitud es GET:
+        - Un objeto JSON con el mensaje de confirmación, la información de la nota de pedido y el código HTTP 200.
+
+    Si el usuario actual no es un administrador, se devuelve un mensaje de error de autorización.
+    Si no se encuentra una nota de pedido con el ID proporcionado, se devuelve un mensaje de error de no encontrado.
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_forbidden("No tienes Autorizacion para acceder")
     
     nota=NotaPedido.query.get(id)
 
     if nota is None:
-        response=make_response(jsonify({"mensaje":"El nota con ese ID no se encuentra","http_code":404}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("El nota con ese ID no se encuentra")
     
-    if request.method=='DELETE' and nota is not None:
+    if request.method=='DELETE':
         db.session.delete(nota)
         db.session.commit()
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente el nota","http_code":200}))
-        response.headers['Content-type']="application/json"
-        return response
+        
+        return jsonify({"mensaje": "Se ha eliminado satisfactoriamente el nota","http_code":200}),200
     
-    elif request.method=='DELETE' and nota is None:
-        response=make_response(jsonify({"mensaje": "El nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
-    elif (request.method=='DELETE' or request.method=='GET') and nota is None:
-        response=make_response(jsonify({"mensaje": "La nota que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
-    
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar el nota %s" % nota.id,"nota":nota.get_json(),"http_code":200}))
-    response.headers['Content-type']="application/json"
-    return response
+    elif request.method=='GET':
+        return jsonify({"mensaje":"Estas seguro de querer eliminar el nota %s" % nota.id,"nota":nota.get_json(),"http_code":200}),200
 
 
 @nota_scope.route('/notas-cocina',methods=['GET'])
 @token_required
 def notas_cocina(current_user):
-    #TODO VERIFICAR QUE SEAN DEL DIA
+    """
+    Obtiene las notas de pedido de cocina que aun no se han atendido, en el dia actual.
+
+    Parámetros:
+    - current_user: El usuario actual autenticado.
+
+    Retorna:
+    - Un objeto JSON que contiene las notas de pedido de cocina encontradas y el código HTTP 200 si se encontraron notas.
+    - Un mensaje de error y el código HTTP 404 si no se encontraron notas de pedido.
+    """
     fecha_inicio=(datetime.now(timezone.utc)-timedelta(hours=5)).strftime('%Y/%m/%d')
     fecha_fin=(datetime.now(timezone.utc)-timedelta(hours=5)+timedelta(days=1)).strftime('%Y/%m/%d')
     notas=NotaPedido.query.filter(NotaPedido.fecha_venta.between(fecha_inicio,fecha_fin),NotaPedido.estado_atendido==False).order_by(asc(NotaPedido.id)).all()
-    #notas=NotaPedido.query.filter_by(estado_atendido=False).all()
+
+    if notas is None:
+        return handle_not_found("No se encontraron notas de pedido")    
     json_notas=[]
     for nota in notas:
         json_notas.append(nota.get_json())
-    response=make_response(jsonify({"notas":json_notas,"http_code":"200"}))
-    response.headers['Content-type']='application/json'
-    return response
+    return jsonify({"notas":json_notas,"http_code":"200"}),200
 
 @nota_scope.route('/nota-cocina-ready/<id>',methods=['PUT'])
 @token_required
 def nota_cocina_ready(current_user,id):
+    """
+    Marca una nota de pedido como atendida por la cocina.
+
+    Parámetros:
+    - current_user: El usuario actual que realiza la solicitud.
+    - id: El ID de la nota de pedido.
+
+    Retorna:
+    - Un objeto JSON con un mensaje de éxito y el código HTTP 200 si la nota de pedido se marcó como atendida correctamente.
+    - Un objeto JSON con un mensaje de error y el código HTTP correspondiente si la nota de pedido no se encontró.
+
+    """
     nota=NotaPedido.query.get(id)
     if not nota:
-        response=make_response(jsonify({"mensaje":"Nota de pedido no encontrada","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("Nota de pedido no encontrada")
 
     nota.estado_atendido=True
     db.session.commit()
-    response=make_response(jsonify({"mensaje":"Nota Atendida","http_code":"200"}))
-    response.headers['Content-type']='application/json'
-    return response
+    return jsonify({"mensaje":"Nota de pedido atendida","http_code":"200"}),200
 
 
 
