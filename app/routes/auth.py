@@ -107,7 +107,7 @@ def login():
     if usuario is not None:
         if usuario.verificar_contraseña(u_contraseña.strip()):
             token=jwt.encode({'id':usuario.get_id(),'rol':usuario.get_rol(),'auth':True,
-                              'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
+                              'exp':datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
             return jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol()}),200
         else:
@@ -122,7 +122,7 @@ def logout(current_user):
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
-    return jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200
+    return jsonify({"mensaje":"Sesión cerrada correctamente","http_code": 200}),200
 
 
 @auth_scope.route('/token-still-valid',methods=['GET'])
@@ -169,7 +169,7 @@ def buscar_nombre(current_user,nombre):
 
     nombre = nombre.strip()
     usuarios = Usuario.query.filter(Usuario.nombre.like('%'+nombre+'%')).all()
-    if usuarios is None:
+    if usuarios is None or len(usuarios) == 0:
         return handle_not_found("No se encontro ningun usuario con ese nombre")    
 
     json_usuario=[]
@@ -215,7 +215,7 @@ def editar(current_user,id):
 
     if request.method == 'PUT':
         u_nombre = request.form.get("nombre").strip()
-        if u_nombre is None:
+        if u_nombre is None or u_nombre == "":
             return handle_bad_request("El nombre no puede estar vacio")
         
         u_rol = "Usuario" if request.form.get("rol") is None else request.form.get("rol")
@@ -224,6 +224,7 @@ def editar(current_user,id):
         if rol is None:        
             return handle_conflict("El rol no existe en la base de datos")
         
+        mensaje_eliminado=""
         if 'file' in request.files:
             last_image = Imagen.query.get(usuario.get_imagen_id())
             imagen_subida = request.files['file']
@@ -232,7 +233,7 @@ def editar(current_user,id):
                 if filename != '':
                     file_ext = os.path.splitext(filename)[1]
                     if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                        return jsonify({"mensaje": "La imagen subida no cumple con el formato permitido 'jpg','png'", "http_code": 400}), 400
+                        return jsonify({"mensaje": "La imagen subida no cumple con el formato permitido o es muy grande 'jpg','png'", "http_code": 400}), 400
                     path = current_app.config['UPLOAD_PATH_PRODUCTOS'] + '/' + last_image.get_filename()
                     if os.path.exists(path) and (last_image.get_id() != 1 or last_image.get_id() != 2):
                         os.remove(path)
@@ -257,6 +258,7 @@ def editar(current_user,id):
         try:
             usuario.nombre = u_nombre
             usuario.role_id = rol.get_id()
+            db.session.commit()
             return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
         except Exception as e:
             return jsonify({"mensaje": "No se ha podido actualizar los datos del usuario", "error": e.args[0], "http_code": 500}), 500
@@ -288,7 +290,7 @@ def eliminar(current_user,id):
     if not current_user.is_administrador():
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     
-    usuario=Usuario.query.get(id)
+    usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:
         return handle_not_found("No se encontro ningun usuario con ese ID")
 
@@ -325,7 +327,7 @@ def ver_usuarios(current_user):
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
 
     usuarios=Usuario.query.all()
-    if usuarios is None:
+    if usuarios is None or len(usuarios)==0:
         return handle_not_found("No se encontro ningun usuario con ese ID")
 
     json_usuario=[]
@@ -350,7 +352,7 @@ def ver_usuarios_delivery(current_user):
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     usuarios=Usuario.query.filter_by(role_id = 4,ocupado = False).all()
 
-    if usuarios is None:
+    if usuarios is None or len(usuarios)==0:
         return handle_not_found("No se encontro ningun usuario con ese ID")
 
     json_usuario=[]
