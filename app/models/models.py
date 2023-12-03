@@ -30,28 +30,18 @@ class Usuario(db.Model):
     # role=Role.query.filter_By(id=3).first()
     # db.session.delete(role)
     # db.session.commit()  -> De esta manera podremos eliminar sin problemas un rol 
-    def __init__(self,nombre,contraseña,role_id=None) -> None:
-        self.nombre=nombre
-        self.contraseña=generate_password_hash(contraseña,method="pbkdf2",salt_length=8)
-        if self.role_id is None :
-            if self.nombre == "aelvismorales":
-                role=Role.query.filter_by(nombre="Administrador").first()
-                self.role_id=role.get_id()
-                img=Imagen.query.filter_by(filename='administrador_perfil.png').first()
-                self.imagen_id=img.get_id()
+    #TODO - Modificar seleccion de imagenes segun el rol creado.
+    def __init__(self, nombre, contraseña, role_id=None) -> None:
+        self.nombre = nombre
+        self.contraseña = generate_password_hash(contraseña, method="pbkdf2", salt_length=8)
 
-            elif self.role_id is None and role_id is not None:
-                self.role_id=role_id
-                img=Imagen.query.filter_by(filename='usuario_perfil.png').first()
-                self.imagen_id=img.get_id()
-            else:
-                self.role_id=1
-                img=Imagen.query.filter_by(filename='usuario_perfil.png').first()
-                self.imagen_id=img.get_id()
+        role,img_filename = Role.query.filter_by(nombre="Administrador").first(),'administrador_perfil.png' if self.nombre == "aelvismorales" or role_id==5 else None,'usuario_perfil.png'
+        self.role_id = role.get_id() if role else role_id or 1
+        img = Imagen.query.filter_by(filename=img_filename).first()
+        self.imagen_id = img.get_id()
 
     def __repr__(self) -> str:
         return str('id:%s,nombre:%s,role:%s') % (self.id,self.nombre,self.role.get_nombre())
-        #return '< User %s,%s>' % (self.nombre,self.role_id)
     
     def verificar_contraseña(self,contraseña):
         return check_password_hash(self.contraseña,contraseña)
