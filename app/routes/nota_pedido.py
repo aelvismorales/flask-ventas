@@ -1,9 +1,9 @@
 
 from datetime import datetime,timezone,timedelta
 from decimal import Decimal
-from flask import Blueprint,request,make_response,jsonify
+from flask import Blueprint,request,jsonify
 from sqlalchemy import asc
-from ..models.models import NotaPedido,db,detalle_venta
+from ..models.models import NotaPedido,db,detalle_venta,Usuario
 from ..decorators import token_required
 from ..errors.errors import *
 nota_scope=Blueprint('nota_pedido',__name__)
@@ -103,6 +103,12 @@ def crear(current_user):
 
             db.session.add(nota)
             db.session.commit()
+            
+            if np_motorizado!='-':
+                usuario_delivery=Usuario.query.filter_by(nombre=np_motorizado).first()
+                if usuario_delivery is not None:
+                    usuario_delivery.ocupado=True
+                    db.session.commit()
 
             total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
 
