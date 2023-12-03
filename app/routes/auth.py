@@ -49,8 +49,8 @@ def registro():
     }
     """
     data = request.json
-    u_nombre = data.get("nombre").strip()
-    u_contraseña = data.get("contraseña").strip()
+    u_nombre = data.get("nombre").strip() if data.get("nombre") else None
+    u_contraseña = data.get("contraseña").strip() if data.get("contraseña") else None
     u_rol = 'Usuario' if data.get("rol") is None else data.get("rol")
 
     if not u_nombre or not u_contraseña:
@@ -96,8 +96,8 @@ def login():
         }
     """
     data = request.json
-    u_nombre = data.get("nombre").strip()
-    u_contraseña = data.get("contraseña").strip()
+    u_nombre = data.get("nombre").strip if data.get("nombre") else None
+    u_contraseña = data.get("contraseña").strip() if data.get("contraseña") else None
 
     if not u_nombre or not u_contraseña:
         return handle_bad_request("El nombre o la contraseña no pueden estar vacios")

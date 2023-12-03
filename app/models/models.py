@@ -34,11 +34,22 @@ class Usuario(db.Model):
     def __init__(self, nombre, contraseña, role_id=None) -> None:
         self.nombre = nombre
         self.contraseña = generate_password_hash(contraseña, method="pbkdf2", salt_length=8)
-
-        role,img_filename = Role.query.filter_by(nombre="Administrador").first(),'administrador_perfil.png' if self.nombre == "aelvismorales" or role_id==5 else None,'usuario_perfil.png'
-        self.role_id = role.get_id() if role else role_id or 1
-        img = Imagen.query.filter_by(filename=img_filename).first()
-        self.imagen_id = img.get_id()
+        if self.role_id is None:
+            role = None
+            img_filename = 'usuario_perfil.png'
+            if self.nombre == "aelvismorales":
+                role = Role.query.filter_by(nombre="Administrador").first()
+                img_filename = 'administrador_perfil.png'
+            elif role_id is not None and role_id ==5:
+                role = Role.query.get(role_id)
+                img_filename = 'administrador_perfil.png'
+                
+            if role is not None:
+                self.role_id = role.id
+            else:
+                self.role_id = 1
+            img = Imagen.query.filter_by(filename=img_filename).first()
+            self.imagen_id = img.id
 
     def __repr__(self) -> str:
         return str('id:%s,nombre:%s,role:%s') % (self.id,self.nombre,self.role.get_nombre())
