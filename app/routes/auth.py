@@ -1,13 +1,14 @@
-from datetime import timedelta
 import datetime
-from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app,session
+from flask import Blueprint, jsonify, make_response,request,send_from_directory,current_app
 from werkzeug.utils import secure_filename
+from ..errors.errors import *
 from ..decorators import token_required
 from ..models.models import Usuario,db,Imagen,Role
 from .general import validar_imagen
-import jwt
 
+import jwt
 import os
+
 
 auth_scope=Blueprint("auth",__name__)
 
@@ -16,92 +17,107 @@ auth_scope=Blueprint("auth",__name__)
 # Modificar y que al iniciar el sistema verifique si existe un administrador en caso de no serlo se creara uno por defecto al iniciar.
 @auth_scope.route('/registro',methods=['POST'])
 def registro():
-    """ 
-    La ruta de registro recibe informacion en formato Json, en donde recibira la siguiente estructura.
-    {
-        "nombre": "aelvismorales",
-        "contraseña": "0000000",
-        "rol" : "Usuario"
-    }
-    Finalizar, se devuelve un Json de formato:
-    { 
-        "mensaje": "informacion",
-        "http_code":201,
-        "usuario: "nombre_usuario"
-    }
-    """ 
-    data=request.json
-    u_nombre=data.get("nombre").strip()
-    u_contraseña=data.get("contraseña").strip()
-    u_rol= 'Usuario' if data.get("rol") is None else data.get("rol") 
-    usuario=Usuario.query.filter_by(nombre=u_nombre).first()
+    """
+    Registra un nuevo usuario en la base de datos.
 
-    if usuario is not None:
-        response=make_response(jsonify({
-            "mensaje": "El usuario ya existe en la base de datos",
-            "http_code":409
-        }))
-        response.headers["Content-type"]="application/json"
-        return response
+    Recibe un JSON con los siguientes campos:
+    - nombre: El nombre del usuario (string).
+    - contraseña: La contraseña del usuario (string).
+    - rol: El rol del usuario (string, opcional).
+
+    Si el nombre o la contraseña están vacíos, se devuelve un error de solicitud incorrecta.
+    Si el usuario ya existe en la base de datos, se devuelve un error de conflicto.
+    Si el rol no existe en la base de datos, se devuelve un error de conflicto.
+    Si ocurre algún error durante el registro, se devuelve un error interno del servidor.
+
+    Ejemplo de JSON de entrada:
+    {
+        "nombre": "John Doe",
+        "contraseña": "password123",
+        "rol": "Usuario"
+    }
+
+    Ejemplo de respuesta exitosa:
+    {
+        "mensaje": "El usuario se registró correctamente",
+        "http_code": 201,
+        "usuario": "John Doe"
+    }
+
+    Ejemplo de respuesta de error:
+    {
+        "mensaje": "No se puede registrar al usuario",
+        "http_code": 500,
+        "error": "Mensaje de error"
+    }
+    """
+    data = request.json
+    u_nombre = data.get("nombre").strip()
+    u_contraseña = data.get("contraseña").strip()
+    u_rol = 'Usuario' if data.get("rol") is None else data.get("rol")
+
+    if not u_nombre or not u_contraseña:
+        return handle_bad_request("El nombre o la contraseña no pueden estar vacios")
+    
+    usuario = Usuario.query.filter_by(nombre=u_nombre).first()
+
+    if usuario is not None:    
+        return handle_conflict("El usuario ya existe en la base de datos") 
     
     rol=Role.query.filter_by(nombre=u_rol).first()
-    if rol is None:
-        response=make_response(jsonify({
-            "mensaje": "El rol no existe en la base de datos",
-            "http_code":409
-        }))
-        response.headers["Content-type"]="application/json"
-        return response
+    if rol is None:        
+        return handle_conflict("El rol no existe en la base de datos")  
     try:
-        nuevo_usuario=Usuario(u_nombre,u_contraseña,rol.get_id())
+        nuevo_usuario = Usuario(u_nombre,u_contraseña,rol.get_id())
         db.session.add(nuevo_usuario)
         db.session.commit()
-        response=make_response(jsonify({"mensaje":"El usuario se registro correctamente",
-                                        "http_code":201,
-                                        "usuario":nuevo_usuario.nombre
-                                        }))
+        return jsonify({"mensaje":"El usuario se registro correctamente",
+                        "http_code":201,
+                        "usuario":nuevo_usuario.nombre
+                        }),201
     except Exception as e:
         db.session.rollback()
-        response=make_response(jsonify({"mensaje":"No se puede registrar al usuario",
-                                        "http_code":500,
-                                        "error":e.args[0]}))
-    response.headers["Content-type"]="application/json" 
-    return response
+        return jsonify({"mensaje":"No se puede registrar al usuario","http_code":500,"error":e.args[0]}),500
 
 @auth_scope.route('/login',methods=['POST'])
 def login():
-    """ 
-    La ruta login recibe informacion en formato Json, de la siguiente manera:
-    {
-        "nombre": "aelvismorales",
-        "contraseña": "0000000",
-        "recuerdame": True or False
-    }
-     Finalizar, se devuelve un Json de formato:
-    { 
-        "mensaje": "informacion",
-        "http_code":201
-    }
     """
-    data=request.json
-    u_nombre=data.get("nombre")
-    u_contraseña=data.get("contraseña")
-    usuario=Usuario.query.filter_by(nombre=u_nombre).first()
+    Realiza el inicio de sesión de un usuario.
+
+    Recibe un JSON con el nombre y la contraseña del usuario.
+    Verifica si el nombre y la contraseña son válidos.
+    Si son válidos, genera un token de autenticación y lo devuelve junto con el rol del usuario.
+    Si no son válidos, devuelve un mensaje de error.
+
+    Returns:
+        JSON: Un JSON con el mensaje de éxito o error, el código HTTP y el token de autenticación (si es válido).
+
+    Example JSON:
+        {
+            "nombre": "ejemplo",
+            "contraseña": "ejemplo123"
+        }
+    """
+    data = request.json
+    u_nombre = data.get("nombre").strip()
+    u_contraseña = data.get("contraseña").strip()
+
+    if not u_nombre or not u_contraseña:
+        return handle_bad_request("El nombre o la contraseña no pueden estar vacios")
+
+    usuario = Usuario.query.filter_by(nombre=u_nombre).first()
 
     if usuario is not None:
         if usuario.verificar_contraseña(u_contraseña):
             token=jwt.encode({'id':usuario.get_id(),'rol':usuario.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-
-            response=make_response(jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol()}))
+            return jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol()}),200
         else:
-            response=make_response(jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}))
+            return jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400
     else:
-        response=make_response(jsonify({"mensaje":"El usuario no existe en la base de datos","http_code": 500}))
+        return jsonify({"mensaje":"El usuario no existe en la base de datos","http_code": 404}),404
 
-    response.headers["Content-type"]="application/json"
-    return response
 
 @auth_scope.route('/logout',methods=['POST'])
 @token_required
@@ -109,20 +125,25 @@ def logout(current_user):
     """La ruta logout solo necesita ser llamada pero esta debe cumplir con que el Usuario
         halla iniciado sesion anteriormente, sino no podra ingresar a la ruta.
     """
-    response=make_response(jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}))
-    response.headers['Content-type']="application/json"
-    return response
+    return jsonify({"mensaje":"Cerro sesion correctamente","http_code": 200}),200
 
 
 @auth_scope.route('/token-still-valid',methods=['GET'])
 @token_required
 def token_still_valid(current_user):
-    token=jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
+    """
+    Verifica si el token de autenticación aún es válido.
+
+    Parámetros:
+    - current_user: El usuario actual autenticado.
+
+    Retorna:
+    - Un objeto JSON que indica si el token aún es válido, junto con el token actualizado.
+    """
+    token = jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-    response=make_response(jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}))
-    response.headers["Content-type"]="application/json"
-    return response
+    return jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}),200
 
 
 # USUARIO
@@ -130,173 +151,235 @@ def token_still_valid(current_user):
 @auth_scope.route('/buscar/<string:nombre>',methods=['GET'])
 @token_required
 def buscar_nombre(current_user,nombre):
-    if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+    """
+    Busca usuarios por nombre y devuelve una lista de usuarios que coinciden con el nombre proporcionado.
 
-    nombre=nombre.replace("_"," ")
-    usuarios=Usuario.query.filter(Usuario.nombre.like('%'+nombre+'%')).all()
+    Parámetros:
+    - current_user: El usuario actual que realiza la búsqueda.
+    - nombre: El nombre a buscar.
+
+    Retorna:
+    - Una lista de usuarios que coinciden con el nombre proporcionado en formato JSON.
+    - Código de estado HTTP 200 si la búsqueda fue exitosa.
+
+    Restricciones:
+    - Solo los administradores tienen autorización para acceder a este recurso.
+    - Si no se encuentra ningún usuario con el nombre proporcionado, se devuelve un código de estado HTTP 404.
+    - Solo se permite el método GET para esta ruta.
+    """
+    if not current_user.is_administrador():
+        return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
+
+    nombre = nombre.strip()
+    usuarios = Usuario.query.filter(Usuario.nombre.like('%'+nombre+'%')).all()
+    if usuarios is None:
+        return handle_not_found("No se encontro ningun usuario con ese nombre")    
+
     json_usuario=[]
-    if len(usuarios) > 0 and request.method=='GET':
+    if request.method=='GET':
         for u in usuarios:
             json_usuario.append(u.get_json())
         
-        response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return jsonify({"usuarios":json_usuario,"http_code":200}),200
     
-    response=make_response(jsonify({"mensaje":"No se pudo encontrar a ningun usuario con ese nombre","http_code":404}))
-    response.headers["Content-type"]="application/json"
-    return response
 
 @auth_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required
 def editar(current_user,id):
+    """
+    Edita un usuario existente.
+
+    Parámetros:
+    - current_user: El usuario actual que realiza la solicitud.
+    - id: El ID del usuario a editar.
+
+    Formulario Datos:
+    - nombre: El nuevo nombre del usuario.
+    - rol: El nuevo rol del usuario.
+    - file: La nueva imagen de perfil del usuario.
+
+    Retorna:
+    - Si la solicitud es un PUT:
+        - Si el usuario no tiene permisos de administrador, retorna un mensaje de error de autorización.
+        - Si no se encuentra ningún usuario con el ID proporcionado, retorna un mensaje de error de no encontrado.
+        - Si se actualizan correctamente los datos del usuario, retorna un mensaje de éxito y el código HTTP 200.
+        - Si ocurre un error al actualizar los datos del usuario, retorna un mensaje de error y el código HTTP 500.
+    - Si la solicitud es un GET:
+        - Si no se encuentra ningún usuario con el ID proporcionado, retorna un mensaje de error de no encontrado.
+        - Si se encuentra el usuario, retorna los datos del usuario y el código HTTP 200.
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
-    usuario=Usuario.query.get(id)
+        return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
+
+    usuario = Usuario.query.get(id)
 
     if usuario is None:
-        response=make_response(jsonify({"messaje":"No se encuentra ningun Usuario con ese ID","http_code":500}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_not_found("No se encontro ningun usuario con ese ID")
 
-    if request.method=='PUT':
-        u_nombre=request.form.get("nombre").strip()
-        u_rol= "Usuario" if request.form.get("rol") is None else request.form.get("rol")
+    if request.method == 'PUT':
+        u_nombre = request.form.get("nombre").strip()
+        if u_nombre is None:
+            return handle_bad_request("El nombre no puede estar vacio")
+        
+        u_rol = "Usuario" if request.form.get("rol") is None else request.form.get("rol")
 
-        rol=Role.query.filter_by(nombre=u_rol).first()
-
-        mensaje_eliminado=""
+        rol = Role.query.filter_by(nombre=u_rol).first()
+        if rol is None:        
+            return handle_conflict("El rol no existe en la base de datos")
+        
         if 'file' in request.files:
-            last_image=Imagen.query.get(usuario.get_imagen_id())
-            imagen_subida=request.files['file']
+            last_image = Imagen.query.get(usuario.get_imagen_id())
+            imagen_subida = request.files['file']
             if imagen_subida is not None:
-                filename=secure_filename(imagen_subida.filename)
-                if filename!='':
-                    file_ext=os.path.splitext(filename)[1]
+                filename = secure_filename(imagen_subida.filename)
+                if filename != '':
+                    file_ext = os.path.splitext(filename)[1]
                     if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                        response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                        ,"http_code":400}))
-                        response.headers["Content-type"]="application/json"
-                        return response
-                    #Removing the last image of producto
-                    path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
-                    if os.path.exists(path) and (last_image.get_id()!=1 or last_image.get_id()!=2):
+                        return jsonify({"mensaje": "La imagen subida no cumple con el formato permitido 'jpg','png'", "http_code": 400}), 400
+                    path = current_app.config['UPLOAD_PATH_PRODUCTOS'] + '/' + last_image.get_filename()
+                    if os.path.exists(path) and (last_image.get_id() != 1 or last_image.get_id() != 2):
                         os.remove(path)
-                        final_filename=u_nombre+file_ext
-                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
-                        img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
+                        final_filename = u_nombre + file_ext
+                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'], final_filename))
+                        img = Imagen(final_filename, current_app.config['UPLOAD_PATH_PERFILES'], imagen_subida.mimetype)
                         db.session.add(img)
                         db.session.commit()
-
-                        usuario.imagen_id=img.get_id()
+                        usuario.imagen_id = img.get_id()
                         db.session.commit()
-
                         db.session.delete(last_image)
                         db.session.commit()
-                        mensaje_eliminado="Se elimino la imagen anterior correctamente"
-                    elif (last_image.get_id()==1 or last_image.get_id()==2):
-                        final_filename=u_nombre+file_ext
-                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'],final_filename))
-                        img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PERFILES'],imagen_subida.mimetype)
+                        mensaje_eliminado = "Se elimino la imagen anterior correctamente"
+                    elif last_image.get_id() == 1 or last_image.get_id() == 2:
+                        final_filename = u_nombre + file_ext
+                        imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'], final_filename))
+                        img = Imagen(final_filename, current_app.config['UPLOAD_PATH_PERFILES'], imagen_subida.mimetype)
                         db.session.add(img)
                         db.session.commit()
-
-                        usuario.imagen_id=img.get_id()
-                        db.session.commit()
-
+                        usuario.imagen_id = img.get_id()
+                        db.session.commit()   
         try:
-            usuario.nombre=u_nombre
-            usuario.role_id=rol.get_id()
-            response=make_response(jsonify({"mensaje": "El usuario se ha actualizado correctamente",
-                                            "adicional":mensaje_eliminado,"http_code": 200}))
-            response.headers['Content-type']="application/json"
-            db.session.commit()
-            return response
+            usuario.nombre = u_nombre
+            usuario.role_id = rol.get_id()
+            return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
         except Exception as e:
-            response=make_response(jsonify({"mensaje":"No se ha podido actualizar los datos del usuario","error": e.args[0],"http_code":500}))
-
-    response=make_response(jsonify({"messaje":"Se envian datos del Usuario %s" % id,"usuario":usuario.get_json(),"http_code":200}))
-    response.headers["Content-type"]="application/json"
-    return response
+            return jsonify({"mensaje": "No se ha podido actualizar los datos del usuario", "error": e.args[0], "http_code": 500}), 500
+        
+    if request.method == 'GET':
+        return jsonify({"mensaje": "Se envian datos del Usuario %s" % id, "usuario": usuario.get_json(), "http_code": 200}), 200
 
 @auth_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
 @token_required
 def eliminar(current_user,id):
+    """
+    Elimina un usuario de la base de datos.
 
+    Parámetros:
+    - current_user: El usuario actual que realiza la acción.
+    - id: El ID del usuario a eliminar.
+
+    Retorna:
+    - Si el método de la solicitud es DELETE:
+        - Si se elimina el usuario correctamente, retorna un JSON con el mensaje "Se ha eliminado satisfactoriamente al Usuario" y el código HTTP 200.
+    - Si el método de la solicitud es GET:
+        - Retorna un JSON con el mensaje "Estas seguro de querer eliminar al Usuario [nombre del usuario]", los datos del usuario y el código HTTP 200.
+
+    Restricciones:
+    - Solo los administradores tienen autorización para acceder a este recurso.
+    - Si el usuario no existe, retorna un JSON con el mensaje "No se encontro ningun usuario con ese ID" y el código HTTP correspondiente.
+    - Si el archivo de imagen asociado al usuario existe en el sistema de archivos y no es una imagen predeterminada, también se elimina.
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     
     usuario=Usuario.query.get(id)
-    
-    if request.method=='DELETE' and usuario is not None:
+    if usuario is None:
+        return handle_not_found("No se encontro ningun usuario con ese ID")
+
+    if request.method=='DELETE':
         img_id=usuario.get_imagen_id()
         img=Imagen.query.filter_by(id=img_id).first()
-        path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()  
-        
+        path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()          
+
         db.session.delete(usuario)
         db.session.commit()
+    
         if os.path.exists(path) and (img_id.get_id()!=1 or img_id.get_id()!=2):
             os.remove(path)
-        response=make_response(jsonify({"mensaje": "Se ha eliminado satisfactoriamente al Usuario","http_code":200}))
-        response.headers['Content-type']="application/json"
-        return response
-    
-    elif (request.method=='DELETE' or request.method=='GET') and usuario is None:
-        response=make_response(jsonify({"mensaje": "El usuario que quieres eliminar no existe o no se puede acceder a sus datos","http_code":500}))
-        response.headers['Content-type']="application/json"
-        return response
 
-    response=make_response(jsonify({"mensaje":"Estas seguro de querer eliminar al Usuario %s" % usuario.nombre,"usuario":usuario.get_json(),"http_code":200}))
-    response.headers['Content-type']="application/json"
-    return response
+        return jsonify({"mensaje":"Se ha eliminado satisfactoriamente al Usuario","http_code":200}),200
+    
+    elif request.method=='GET':
+        return jsonify({"mensaje":"Estas seguro de querer eliminar al Usuario %s" % usuario.nombre,"usuario":usuario.get_json(),"http_code":200}),200
 
 @auth_scope.route('/usuarios/all',methods=['GET'])
 @token_required
 def ver_usuarios(current_user):
+    """
+    Obtiene la lista de todos los usuarios.
+
+    Parameters:
+        current_user (User): El usuario actual que realiza la solicitud.
+
+    Returns:
+        tuple: Una tupla que contiene un diccionario con la lista de usuarios y el código HTTP 200 si se encuentra al menos un usuario, 
+        de lo contrario, devuelve un mensaje de error y el código HTTP 404.
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
+        return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
 
     usuarios=Usuario.query.all()
+    if usuarios is None:
+        return handle_not_found("No se encontro ningun usuario con ese ID")
+
     json_usuario=[]
+
     for u in usuarios:
         json_usuario.append(u.get_json())
-    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
-    response.headers["Content-type"]="application/json"
-    return response
+    return jsonify({"usuarios":json_usuario,"http_code":200}),200
 
 @auth_scope.route('/usuarios/delivery',methods=['GET'])
 @token_required
 def ver_usuarios_delivery(current_user):
+    """
+    Obtiene la lista de usuarios de tipo 'delivery'.
+
+    Parameters:
+        current_user (User): El usuario actual.
+
+    Returns:
+        tuple: Una tupla que contiene un diccionario con la lista de usuarios y el código de estado HTTP.
+    """
     if not current_user.is_administrador():
-        response=make_response(jsonify({"mensaje":"No tienes Autorizacion para acceder","http_code":403}))
-        response.headers["Content-type"]="application/json"
-        return response
-    
+        return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     usuarios=Usuario.query.filter_by(role_id=4).all()
+
+    if usuarios is None:
+        return handle_not_found("No se encontro ningun usuario con ese ID")
+
     json_usuario=[]
     for u in usuarios:
         json_usuario.append(u.get_json())
-    response=make_response(jsonify({"usuarios":json_usuario,"http_code":200}))
-    response.headers["Content-type"]="application/json"
-    return response
+
+    return jsonify({"usuarios":json_usuario,"http_code":200}),200
 
 @auth_scope.route('/ver/imagen/<id>',methods=['GET'])
 @token_required
 def ver_imagen(current_user,id):
+    """
+    Devuelve la imagen de perfil de un usuario específico.
+
+    Parámetros:
+    - current_user: El usuario actual autenticado.
+    - id: El ID del usuario cuya imagen de perfil se desea obtener.
+
+    Retorna:
+    - Si se encuentra la imagen de perfil, se devuelve la imagen.
+    - Si no se encuentra la imagen de perfil, se devuelve la imagen de perfil predeterminada.
+    """
     usuario=Usuario.query.filter_by(id=id).first()
     if usuario is None:
-        response=make_response(jsonify({"mensaje":"El usuario con ese ID no se encuentra","http_code":404}))
-        response.headers['Content-type']="application/json"
-        return response
+        return handle_not_found("No se encontro ningun usuario con ese ID")
+    
     img_id=usuario.get_imagen_id()
     img=Imagen.query.filter_by(id=img_id).first()
 
@@ -306,5 +389,4 @@ def ver_imagen(current_user,id):
     else:
         usuario.imagen_id=1
         db.session.commit()
-
         return send_from_directory('../'+current_app.config['UPLOAD_PATH_PERFILES'],'usuario_perfil.png')
