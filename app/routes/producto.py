@@ -35,12 +35,12 @@ def crear(current_user):
     if not current_user.is_administrador():
         return handle_forbidden("No tienes Autorizacion para acceder al recurso")
     
-    p_nombre=request.form.get("nombre").upper().strip()
-    p_precio=request.form.get("precio")
+    p_nombre= request.form.get("nombre").upper().strip() if request.form.get("nombre") is not None else None
+    p_precio=request.form.get("precio") if request.form.get("precio") is not None else None
     p_tipo= "General" if request.form.get("tipo") is None else request.form.get("tipo")
 
-    if not p_nombre or not p_precio:
-        return jsonify({"mensaje":"No se enviaron los datos necesarios","http_code":400}),400
+    if not p_nombre or not p_precio or float(p_precio)<0.0 or p_nombre=='' or len(p_nombre)>40:
+        return handle_bad_request("No se enviaron los datos necesarios")
 
     producto=Producto.query.filter_by(nombre=p_nombre).first()
     if producto is not None:
@@ -58,26 +58,32 @@ def crear(current_user):
         if filename !='':
             file_ext=os.path.splitext(filename)[1]
             if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                response=make_response(jsonify({"mensaje":"La imagen subida no cumple con el formato permitido 'jpg','png'"
-                                                ,"http_code":400}))
-                response.headers["Content-type"]="application/json"
-                return response
+                return handle_bad_request("La imagen subida no cumple con el formato permitido o excede 1024*1024 'jpg','png'")
             final_filename=p_nombre+file_ext
             imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
             img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
             db.session.add(img)
             db.session.commit()
-
-    try:
-        img_id=img.get_id() or 3
-        nuevo_producto=Producto(p_nombre,p_precio,tipo_id,img_id)
-        db.session.add(nuevo_producto)
-        db.session.commit()
-        return jsonify({"mensaje":"Se creo el producto satisfactoriamente","http_code":201}),201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
-                        "http_code":500}),500
+            try:
+                nuevo_producto=Producto(p_nombre,p_precio,tipo_id,img.get_id())
+                db.session.add(nuevo_producto)
+                db.session.commit()
+                return jsonify({"mensaje":"Se creo el producto satisfactoriamente","http_code":201}),201
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
+                                "http_code":500}),500        
+    else:        
+        try:
+            img_id= 3
+            nuevo_producto=Producto(p_nombre,p_precio,tipo_id,img_id)
+            db.session.add(nuevo_producto)
+            db.session.commit()
+            return jsonify({"mensaje":"Se creo el producto satisfactoriamente","http_code":201}),201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"mensaje": "El producto no se pudo crear","error":e.args[0],
+                            "http_code":500}),500
 
 @producto_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required

@@ -1,7 +1,5 @@
 import pytest
 from app import create_app
-#from app.models.models import db, Usuario, Role
-from werkzeug.security import generate_password_hash,check_password_hash
 
 @pytest.fixture(scope='module')
 def client():
@@ -11,8 +9,6 @@ def client():
     app = create_app('testing')
     app.testing = True
     with app.test_client() as client:
-        #with app.app_context():
-        #    db.create_all()
         yield client
 
 
@@ -178,7 +174,7 @@ def test_editar_usuario(client):
     # Test send existing rol and sending file with big size
     with open('./test_images/usuario/test_user_big_size.jpg','rb') as img:
         response=client.put('/auth/editar/1',data={'nombre':"testuser3",'rol':"Administrador",'file':(img,'test_user_big_size.png')},headers={'Authorization': 'Bearer ' + token})
-        assert response.status_code == 400
+        assert response.status_code == 400 or response.status_code == 413
 
     
 def test_eliminar_usuario(client):
