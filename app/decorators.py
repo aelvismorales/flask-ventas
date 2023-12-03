@@ -19,6 +19,6 @@ def token_required(f):
             current_user=Usuario.query.filter_by(id=data['id']).first()
             
         except:
-            return jsonify({'mensaje':'Token es invalido!','http_code':401}),401
+            return jsonify({'mensaje':'Token inválido','http_code':401}),401
         return f(current_user,*args,**kwargs)
     return decorated
