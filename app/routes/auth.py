@@ -96,16 +96,16 @@ def login():
         }
     """
     data = request.json
-    u_nombre = data.get("nombre").strip if data.get("nombre") else None
-    u_contraseña = data.get("contraseña").strip() if data.get("contraseña") else None
+    u_nombre = data.get("nombre") if data.get("nombre") else None
+    u_contraseña = data.get("contraseña") if data.get("contraseña") else None
 
     if not u_nombre or not u_contraseña:
         return handle_bad_request("El nombre o la contraseña no pueden estar vacios")
 
-    usuario = Usuario.query.filter_by(nombre=u_nombre).first()
+    usuario = Usuario.query.filter_by(nombre=u_nombre.strip()).first()
 
     if usuario is not None:
-        if usuario.verificar_contraseña(u_contraseña):
+        if usuario.verificar_contraseña(u_contraseña.strip()):
             token=jwt.encode({'id':usuario.get_id(),'rol':usuario.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
@@ -348,7 +348,7 @@ def ver_usuarios_delivery(current_user):
     """
     if not current_user.is_administrador():
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
-    usuarios=Usuario.query.filter_by(role_id=4).all()
+    usuarios=Usuario.query.filter_by(role_id = 4,ocupado = False).all()
 
     if usuarios is None:
         return handle_not_found("No se encontro ningun usuario con ese ID")

@@ -21,6 +21,7 @@ class Usuario(db.Model):
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
     imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
     nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
+    ocupado=db.Column(db.Boolean,default=False)
     
     # OCUPADO : TRUE OR FALSE;
     #mesas=db.relationship('Mesa',backref='usuario',lazy='dynamic',cascade='all,delete-orphan')
@@ -30,7 +31,6 @@ class Usuario(db.Model):
     # role=Role.query.filter_By(id=3).first()
     # db.session.delete(role)
     # db.session.commit()  -> De esta manera podremos eliminar sin problemas un rol 
-    #TODO - Modificar seleccion de imagenes segun el rol creado.
     def __init__(self, nombre, contraseña, role_id=None) -> None:
         self.nombre = nombre
         self.contraseña = generate_password_hash(contraseña, method="pbkdf2", salt_length=8)
@@ -41,7 +41,7 @@ class Usuario(db.Model):
                 role = Role.query.filter_by(nombre="Administrador").first()
                 img_filename = 'administrador_perfil.png'
             elif role_id is not None and role_id ==5:
-                role = Role.query.get(role_id)
+                role = Role.query.filter_by(id=role_id).first()
                 img_filename = 'administrador_perfil.png'
                 
             if role is not None:
@@ -64,7 +64,7 @@ class Usuario(db.Model):
         return self.can(Permission.ADMINISTRADOR)
 
     def get_json(self):
-        json={"id":self.id,"nombre":self.nombre,"role_id":self.role.get_nombre()}
+        json={"id":self.id,"nombre":self.nombre,"role_id":self.role.get_nombre(),"ocupado":self.ocupado}
         return json
     
     def get_imagen_id(self):
@@ -161,7 +161,7 @@ class Role(db.Model):
 
 detalle_venta=db.Table('detalle_venta',
                        db.Column('nota_id',db.Integer,db.ForeignKey('nota_pedidos.id')),
-                       db.Column('producto_id',db.Integer,db.ForeignKey('productos.id')),
+                       db.Column('producto_id',db.Integer,db.ForeignKey('productos.id', ondelete='SET NULL')),
                        db.Column('dv_cantidad',db.Numeric(precision=10,scale=2)),
                        db.Column('dv_precio',db.Numeric(precision=10,scale=2)),
                        db.Column('dv_atendido',db.Boolean(),default=False)
@@ -239,7 +239,7 @@ class NotaPedido(db.Model):
         """
         Retorna una lista con los productos en la nota de pedido. solo nombre y cantidad.
         """
-        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio,detalle_venta.c.dv_atendido).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
+        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio,detalle_venta.c.dv_atendido).join(detalle_venta,detalle_venta.c.producto_id==Producto.id,isouter=True).filter(detalle_venta.c.nota_id==self.id)
         lista_productos=[]
         for producto,cantidad,dv_precio,dv_atendido in detalles:
             lista_productos.append({
