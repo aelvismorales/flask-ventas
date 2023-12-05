@@ -256,9 +256,21 @@ def editar(current_user,id):
                         usuario.imagen_id = img.get_id()
                         db.session.commit()   
         try:
-            usuario.nombre = u_nombre
-            usuario.role_id = rol.get_id()
-            db.session.commit()
+            nombre=usuario.get_nombre()
+            role_actual=usuario.get_rol_id()
+            role_nuevo=rol.get_id()
+
+            if nombre!=u_nombre:
+                usuario.nombre=u_nombre
+                db.session.commit()
+                
+            if role_actual!=role_nuevo:
+                usuario.role_id=role_nuevo
+                db.session.commit()
+            
+            if u_nombre == nombre and role_actual == role_nuevo:
+                raise Exception("No se han realizado cambios")
+            
             return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
         except Exception as e:
             return jsonify({"mensaje": "No se ha podido actualizar los datos del usuario", "error": e.args[0], "http_code": 500}), 500

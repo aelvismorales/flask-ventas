@@ -76,6 +76,9 @@ class Usuario(db.Model):
     def get_rol(self):
         return self.role.get_nombre()
     
+    def get_rol_id(self):
+        return self.role_id
+    
     def get_nombre(self):
         return self.nombre
 
@@ -196,6 +199,19 @@ class Producto(db.Model):
         return json if json is not None else {}
     def get_id(self):
         return self.id
+    
+    def get_tipo_id(self):
+        return self.tipo_id
+    
+    def get_precio(self):
+        return self.precio
+    
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Producto):
+            if self.nombre == other.nombre and self.precio == other.precio and self.tipo_id == other.tipo_id:
+                return True
+            return False
+        return False
 
 class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
