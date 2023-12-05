@@ -116,11 +116,11 @@ def editar(current_user,id):
         return handle_not_found("El producto con ese ID no se encuentra")
 
     if request.method=="PUT":
-        p_nombre=request.form.get("nombre").upper().strip()
-        p_precio=float(request.form.get("precio"))
+        p_nombre=request.form.get("nombre").upper().strip() if request.form.get("nombre") is not None else None
+        p_precio=float(request.form.get("precio")) if request.form.get("precio") is not None else None
         p_tipo="General" if request.form.get("tipo") is None else request.form.get("tipo")
 
-        if not p_nombre or not p_precio:
+        if not p_nombre or not p_precio or float(p_precio)<0.0:
             return handle_bad_request("No se enviaron los datos necesarios")
         
         tipo=Tipo.query.filter_by(nombre=p_tipo).first()
@@ -165,11 +165,27 @@ def editar(current_user,id):
                         db.session.commit()              
 
         try:
-            producto.nombre=p_nombre
-            producto.precio=p_precio
-            producto.tipo_id=tipo.get_id()
-            db.session.commit()
-            return jsonify({"mensaje":"Se edito el producto satisfactoriamente","http_code":200}),200
+            nombre=producto.get_nombre()
+            precio=producto.get_precio()
+            tipo_id_actual = producto.get_tipo_id()
+            tipo_id_nuevo = tipo.get_id()
+            
+            if p_nombre != nombre:
+                producto.nombre=p_nombre
+                db.session.commit()
+
+            if p_precio != precio:
+                producto.precio=p_precio
+                db.session.commit()
+
+            if tipo_id_actual != tipo_id_nuevo:
+                producto.tipo_id=tipo.get_id()
+                db.session.commit()
+
+            if p_nombre == nombre and p_precio == precio and tipo_id_actual == tipo_id_nuevo:
+                raise Exception("Los datos enviados son iguales a los actuales")
+            
+            return jsonify({"mensaje":"Se edito el producto satisfactoriamente","http_code":200}),200 
         except Exception as e:
             db.session.rollback()
             return jsonify({"mensaje": "El producto no se pudo editar","error":e.args[0],
