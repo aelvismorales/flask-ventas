@@ -423,3 +423,6 @@ class Articulo(db.Model):
     def get_json(self):
         json={"id":self.id,"nombre":self.nombre,"unidad":self.unidad,"cantidad":f'{self.cantidad:.2f}',"fecha_actualizacion":self.get_fecha_actualizacion()}
         return json
+    
+    def get_datos(self):
+        return self.nombre,self.unidad,self.cantidad

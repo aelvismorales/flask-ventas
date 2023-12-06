@@ -31,8 +31,8 @@ def crear(current_user):
         return  handle_forbidden("No tienes Autorizacion para acceder")
     
     data=request.json
-    a_nombre=data.get("nombre").upper().strip()
-    a_unidad=data.get("unidad").upper().strip()
+    a_nombre=data.get("nombre").upper().strip() if data.get("nombre") else None
+    a_unidad=data.get("unidad").upper().strip() if data.get("unidad") else None
     a_cantidad=data.get("cantidad")
 
     if not a_nombre or not a_unidad or not a_cantidad:
@@ -141,19 +141,28 @@ def editar(current_user,id):
 
     if request.method=='PUT':
         data=request.json
-        a_nombre=data.get("nombre").upper().strip()
-        a_unidad=data.get("unidad").upper().strip()
-        a_cantidad=data.get("cantidad")
+        a_nombre=data.get("nombre").upper().strip() if data.get("nombre") else None
+        a_unidad=data.get("unidad").upper().strip() if data.get("unidad") else None
+        a_cantidad=data.get("cantidad") if data.get("cantidad") else None
 
         if not a_nombre or not a_unidad or not a_cantidad:
             return handle_conflict("Faltan datos para crear el artículo")
 
         try:
-            articulo.nombre=a_nombre
-            articulo.unidad=a_unidad
-            articulo.cantidad=a_cantidad
+            nombre,unidad,cantidad=articulo.get_datos()
+            if a_nombre !=nombre:
+                articulo.nombre=a_nombre
+                db.session.commit()
+            if a_unidad !=unidad:
+                articulo.unidad=a_unidad
+                db.session.commit()
+            if a_cantidad !=cantidad:
+                articulo.cantidad=a_cantidad
+                db.session.commit()
             
-            db.session.commit()
+            if a_nombre == nombre and a_unidad == unidad and a_cantidad == cantidad:
+                return handle_conflict("No se actualizaron los datos del artículo")
+            
             return jsonify({"mensaje":"Se actualizó el artículo correctamente","http_code":200}),200
         except Exception as e:
             db.session.rollback()
