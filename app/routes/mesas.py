@@ -25,20 +25,23 @@ def crear(current_user):
         return handle_forbidden("No tienes Autorizacion para acceder")\
     
     data=request.json
-    me_piso=data.get("piso")
-    me_numero_mesa=data.get("numero_mesa")
+    me_piso=data.get("piso") if data.get("piso") else None
+    me_numero_mesa=data.get("numero_mesa") if data.get("numero_mesa") else None
 
+    if not me_piso or not me_numero_mesa:
+        return handle_conflict("Faltan datos para crear la mesa")
+    
     nueva_mesa=Mesa(me_piso,me_numero_mesa)
 
     try:
         db.session.add(nueva_mesa)
         db.session.commit()
-        return jsonify({"mensaje":"Se creo con exito la mesa","http_code":200}),200
+        return jsonify({"mensaje":"Se creo con exito la mesa","http_code":201}),201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"mensaje":"No se pudo crear la mesa","error":e.args[0],"http_code":500}),500
+        return jsonify({"mensaje":"No se pudo crear la mesa","error":e.args[0],"http_code":409}),409
     
-@mesa_scope.route('/editar/<id>',methods=['GET','POST'])
+@mesa_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required
 def editar(current_user,id):  
     """
@@ -56,7 +59,7 @@ def editar(current_user,id):
 
     Métodos HTTP permitidos:
     - GET: Obtiene los datos de la mesa especificada por su ID.
-    - POST: Actualiza los datos de la mesa especificada por su ID.
+    - PUT: Actualiza los datos de la mesa especificada por su ID.
 
     Retorna:
     - Si el método HTTP es POST y la mesa existe, retorna un JSON con el mensaje "Actualizado con exito" y el código de estado 200.
@@ -64,7 +67,7 @@ def editar(current_user,id):
     - Si el método HTTP es GET y la mesa existe, retorna un JSON con los datos de la mesa y el código de estado 200.
     - Si el método HTTP es GET y la mesa no existe, retorna un JSON con el mensaje "No se pudo obtener datos" y el código de estado 500.
     """
-    if request.method=='POST':
+    if request.method=='PUT':
         mesa=Mesa.query.filter_by(id=id).first()
         if mesa is not None:
             data=request.json
@@ -76,15 +79,15 @@ def editar(current_user,id):
             db.session.commit()
             return jsonify({"mensaje":"Actualizado con exito","http_code":200}),200
         else:
-            return jsonify({"mensaje":"No se pudo obtener datos","http_code":500}),500
+            return handle_not_found("La mesa con ese ID no se encuentra")
     else:
         mesa=Mesa.query.filter_by(id=id).first()
         if mesa is not None:
             return jsonify({"mesa":mesa.get_json(),"http_code":200}),200
         else:
-            return  jsonify({"mensaje":"No se pudo obtener datos","http_code":500}),500
+            return  handle_not_found("La mesa con ese ID no se encuentra")
 
-@mesa_scope.route('/editar-estado/<id>',methods=['POST'])
+@mesa_scope.route('/editar-estado/<id>',methods=['PUT'])
 @token_required
 def editar_estados(current_user,id):
     """
@@ -112,8 +115,8 @@ def editar_estados(current_user,id):
         db.session.commit()
         return jsonify({"mensaje":"Actualizado con exito","http_code":200}),200
     else:
-        return jsonify({"mensaje":"No se pudo obtener datos","http_code":500}),500
-
+        return handle_not_found("La mesa con ese ID no se encuentra")
+    
 
 @mesa_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
 @token_required
@@ -166,11 +169,11 @@ def obtener(current_user,n_piso):
     - JSON con las mesas del piso especificado y el código HTTP correspondiente.
     """
     mesas=Mesa.query.filter_by(piso=n_piso).all()
-    if mesas is not None:
+    if len(mesas)>0 :
         json_mesas=[]
         for m in mesas:
             json_mesas.append(m.get_json())
         return jsonify({"mesas":json_mesas,"piso":n_piso,"http_code":200}),200
     else:
-        return jsonify({"mensaje":"No se pudo obtener datos","http_code":500}),500
+        return handle_not_found("No se pudo obtener datos")
     
