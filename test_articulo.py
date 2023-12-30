@@ -47,7 +47,7 @@ def test_editar_articulo(client):
         'unidad': 'testunidad',
         'cantidad': 10
         },headers={'Authorization': 'Bearer ' + token})
-    assert response.status_code == 200 or response.status_code == 404 or response == 409 #409 si los datos son los mismos
+    assert response.status_code == 200 or response.status_code == 404 or response.status_code == 409 #409 si los datos son los mismos
 
     # Test editar articulo con datos faltantes
     response = client.put('/articulo/editar/1', json={

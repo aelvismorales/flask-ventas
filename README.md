@@ -44,3 +44,19 @@ Teniendo todos los upgrade previos de la base de datos podras utilizar:
 flask run
 ```
 De esta manera ya podras correr el proyecto y tener acceso a las rutas JSON.
+
+
+Pasos para correr las pruebas:
+------------------------------
+- Utilizamos el siguiente codigo:
+``` 
+    pytest test_auth.py
+```
+Esto lo hacemos con cada tipo de archivo se puede revisar documentacion de pytest y correr todo al mismo tiempo.
+
+Para que las pruebas se ejecuten correctamente se deben ejecutar en el siguiente orden:
+* test_auth
+* test_articulo
+* test_producto
+* test_mesas
+* test_nota_pedido

@@ -254,7 +254,9 @@ def editar(current_user,id):
                         db.session.add(img)
                         db.session.commit()
                         usuario.imagen_id = img.get_id()
-                        db.session.commit()   
+                        db.session.commit()
+
+#TODO VERIFICAR COMO TRABAJAR CUANDO EXISTA IN FILE IN REQUEST FILE, DADO QUE DA ERROR AL MOMENTO DE ACTUALIZAR LOS DATOS DEL USUARIO   
         try:
             nombre=usuario.get_nombre()
             role_actual=usuario.get_rol_id()
@@ -269,7 +271,10 @@ def editar(current_user,id):
                 db.session.commit()
             
             if u_nombre == nombre and role_actual == role_nuevo:
-                raise Exception("No se han realizado cambios")
+                if 'file' in request.files:
+                    return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
+                else:
+                    return jsonify({"mensaje": "Los datos del usuario no han cambiado", "http_code": 409}), 409
             
             return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
         except Exception as e:

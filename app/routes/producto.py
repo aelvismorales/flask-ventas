@@ -181,9 +181,13 @@ def editar(current_user,id):
             if tipo_id_actual != tipo_id_nuevo:
                 producto.tipo_id=tipo.get_id()
                 db.session.commit()
+            
 
             if p_nombre == nombre and p_precio == precio and tipo_id_actual == tipo_id_nuevo:
-                raise Exception("Los datos enviados son iguales a los actuales")
+                if 'file' in request.files:
+                    return jsonify({"mensaje":"Se edito el producto satisfactoriamente","http_code":200}),200
+                else:
+                    return handle_conflict("Los datos enviados son iguales a los actuales")
             
             return jsonify({"mensaje":"Se edito el producto satisfactoriamente","http_code":200}),200 
         except Exception as e:
