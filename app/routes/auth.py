@@ -51,8 +51,8 @@ def registro():
     data = request.json
     u_nombre = data.get("nombre").strip() if data.get("nombre") else None
     u_contraseña = data.get("contraseña").strip() if data.get("contraseña") else None
-    u_rol = 'Usuario' if data.get("rol") is None else data.get("rol")
-
+    u_rol = data.get("rol") if data.get("rol") else "Usuario"
+    
     if not u_nombre or not u_contraseña:
         return handle_bad_request("El nombre o la contraseña no pueden estar vacios")
     
@@ -140,7 +140,7 @@ def token_still_valid(current_user):
     token = jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-    return jsonify({"mensaje":"Token still valid","http_code": 200,'token':token}),200
+    return jsonify({"mensaje":"Token still valid","http_code": 200,'rol':current_user.get_rol(),'token':token}),200
 
 
 # USUARIO

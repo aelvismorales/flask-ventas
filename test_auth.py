@@ -54,6 +54,7 @@ def test_registro(client):
     assert response.get_json()['http_code'] == 409
 
 
+
 def test_login(client):
     # Test not sending data
     response = client.post('/auth/login', json={},headers=headers)

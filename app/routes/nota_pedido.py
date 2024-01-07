@@ -63,7 +63,7 @@ def crear(current_user):
             },
             {
                 "producto_id": 2,
-                "cantidad": 1,
+                "cantidad": 1,  
                 "precio": 10.00
             }
         ]
