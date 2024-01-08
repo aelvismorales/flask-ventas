@@ -2,6 +2,7 @@ from decimal import Decimal
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash,check_password_hash
 from datetime import datetime,timezone,timedelta
+from sqlalchemy import UniqueConstraint
 
 db=SQLAlchemy()
 scale=2
@@ -316,6 +317,8 @@ class Mesa(db.Model):
     estado_mesa=db.Column(db.Boolean,default=False) # True Ocupado False Desocupado
     #usuario_id=db.Column(db.Integer,db.ForeignKey('usuarios.id'))
     nota_pedidos=db.relationship('NotaPedido',backref='mesa',lazy='dynamic',cascade='all,delete-orphan')
+
+    __table_args__=(UniqueConstraint('piso','numero_mesa',name='mesa_piso_numero_mesa'),)
 
     def __init__(self,piso,numero_mesa) -> None:
         self.piso=piso
