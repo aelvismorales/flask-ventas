@@ -41,14 +41,14 @@ class Usuario(db.Model):
             if self.nombre == "aelvismorales":
                 role = Role.query.filter_by(nombre="Administrador").first()
                 img_filename = 'administrador_perfil.png'
-            elif role_id is not None and role_id ==5:
+            elif role_id ==5:
                 role = Role.query.filter_by(id=role_id).first()
                 img_filename = 'administrador_perfil.png'
                 
             if role is not None:
                 self.role_id = role.id
             else:
-                self.role_id = 1
+                self.role_id = role_id
             img = Imagen.query.filter_by(filename=img_filename).first()
             self.imagen_id = img.id
 
