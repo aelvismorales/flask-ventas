@@ -18,12 +18,15 @@ class Usuario(db.Model):
     __tablename__='usuarios'
     id=db.Column(db.Integer,primary_key=True)
     nombre=db.Column(db.String(64),unique=True,index=True)
+    nombre_usuario=db.Column(db.String(64),unique=True,index=True)
     contraseña=db.Column(db.String(128))
     role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
     imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
     nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
     ocupado=db.Column(db.Boolean,default=False)
     
+
+    # TODO AGREGAR UNA FUNCION DE CREACION DE ADMINISTRADOR POR DEFECTO ADMIN 1 Y ADMIN 2
     # OCUPADO : TRUE OR FALSE;
     #mesas=db.relationship('Mesa',backref='usuario',lazy='dynamic',cascade='all,delete-orphan')
 
@@ -32,8 +35,9 @@ class Usuario(db.Model):
     # role=Role.query.filter_By(id=3).first()
     # db.session.delete(role)
     # db.session.commit()  -> De esta manera podremos eliminar sin problemas un rol 
-    def __init__(self, nombre, contraseña, role_id=None) -> None:
+    def __init__(self, nombre,nombre_usuario, contraseña, role_id=None) -> None:
         self.nombre = nombre
+        self.nombre_usuario = nombre_usuario
         self.contraseña = generate_password_hash(contraseña, method="pbkdf2", salt_length=8)
         if self.role_id is None:
             role = None

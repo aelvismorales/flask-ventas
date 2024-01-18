@@ -106,7 +106,7 @@ def crear(current_user):
             
             if np_motorizado!='-':
                 usuario_delivery=Usuario.query.filter_by(nombre=np_motorizado).first()
-                if usuario_delivery is not None:
+                if usuario_delivery:
                     usuario_delivery.ocupado=True
                     db.session.commit()
 
