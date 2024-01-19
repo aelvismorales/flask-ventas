@@ -193,6 +193,7 @@ def editar(current_user,id):
 
     Formulario Datos:
     - nombre: El nuevo nombre del usuario.
+    - nombre_usuario: El nombre de la persona que esta usando el sistema.
     - rol: El nuevo rol del usuario.
     - file: La nueva imagen de perfil del usuario.
 
@@ -216,8 +217,9 @@ def editar(current_user,id):
 
     if request.method == 'PUT':
         u_nombre = request.form.get("nombre").strip()
-        if u_nombre is None or u_nombre == "":
-            return handle_bad_request("El nombre no puede estar vacio")
+        u_nombre_usuario=request.form.get("nombre_usuario").strip()
+        if u_nombre is None or u_nombre == "" or u_nombre_usuario is None or u_nombre_usuario == "":
+            return handle_bad_request("El nombre o nombre de usuario no puede estar vacio")
         
         u_rol = "Usuario" if request.form.get("rol") is None else request.form.get("rol")
 
@@ -260,18 +262,23 @@ def editar(current_user,id):
 #TODO VERIFICAR COMO TRABAJAR CUANDO EXISTA IN FILE IN REQUEST FILE, DADO QUE DA ERROR AL MOMENTO DE ACTUALIZAR LOS DATOS DEL USUARIO   
         try:
             nombre=usuario.get_nombre()
+            nombre_usuario=usuario.get_nombre_usuario()
             role_actual=usuario.get_rol_id()
             role_nuevo=rol.get_id()
 
             if nombre!=u_nombre:
                 usuario.nombre=u_nombre
                 db.session.commit()
+
+            if nombre_usuario!=u_nombre_usuario:
+                usuario.nombre_usuario=u_nombre_usuario
+                db.session.commit()
                 
             if role_actual!=role_nuevo:
                 usuario.role_id=role_nuevo
                 db.session.commit()
             
-            if u_nombre == nombre and role_actual == role_nuevo:
+            if u_nombre == nombre and role_actual == role_nuevo and u_nombre_usuario == nombre_usuario:
                 if 'file' in request.files:
                     return jsonify({"mensaje": "El usuario se ha actualizado correctamente", "adicional": mensaje_eliminado, "http_code": 200}), 200
                 else:
