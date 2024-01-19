@@ -50,6 +50,7 @@ def registro():
     """
     data = request.json
     u_nombre = data.get("nombre").strip() if data.get("nombre") else None
+    u_nombre_usuario=data.get("nombre_usuario").strip() if data.get("nombre_usuario") else None
     u_contraseña = data.get("contraseña").strip() if data.get("contraseña") else None
     u_rol = data.get("rol") if data.get("rol") else "Usuario"
     
@@ -65,7 +66,7 @@ def registro():
     if rol is None:        
         return handle_conflict("El rol no existe en la base de datos")  
     try:
-        nuevo_usuario = Usuario(u_nombre,u_contraseña,rol.get_id())
+        nuevo_usuario = Usuario(u_nombre,u_nombre_usuario,u_contraseña,rol.get_id())
         db.session.add(nuevo_usuario)
         db.session.commit()
         return jsonify({"mensaje":"El usuario se registro correctamente",
