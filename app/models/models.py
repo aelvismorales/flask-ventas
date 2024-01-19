@@ -69,7 +69,7 @@ class Usuario(db.Model):
         return self.can(Permission.ADMINISTRADOR)
 
     def get_json(self):
-        json={"id":self.id,"nombre":self.nombre,"role_id":self.role.get_nombre(),"ocupado":self.ocupado}
+        json={"id":self.id,"nombre":self.nombre,"nombre_usuario":self.nombre_usuario,"role_id":self.role.get_nombre(),"ocupado":self.ocupado}
         return json
     
     def get_imagen_id(self):
