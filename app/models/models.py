@@ -86,6 +86,9 @@ class Usuario(db.Model):
     
     def get_nombre(self):
         return self.nombre
+    
+    def get_nombre_usuario(self):
+        return self.nombre_usuario
 
 class Role(db.Model):
     __tablename__='roles'
@@ -222,10 +225,12 @@ class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
     fecha_venta=db.Column(db.DateTime,default=datetime.now(timezone.utc)-timedelta(hours=5))
-    #tipo_pago=db.Column(db.String(64),nullable=False)
+    
     pago_efectivo=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     pago_yape=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     pago_visa=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+    vuelto=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
+
     nombre=db.Column(db.String(64),nullable=False)
     direccion=db.Column(db.String(64),nullable=False)
     telefono=db.Column(db.String(64),nullable=True)
@@ -242,10 +247,11 @@ class NotaPedido(db.Model):
     estado_atendido=db.Column(db.Boolean,default=False) # True Atendido False No Atendido
     mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id',ondelete='SET DEFAULT',),nullable=True,server_default=None)
 
-    def __init__(self,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None,pago_efectivo=0.00,pago_yape=0.00,pago_visa=0.00,comentario="") -> None:
+    def __init__(self,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None,pago_efectivo=0.00,pago_yape=0.00,pago_visa=0.00,vuelto=0.00,comentario="") -> None:
         self.pago_efectivo=pago_efectivo
         self.pago_yape=pago_yape
         self.pago_visa=pago_visa
+        self.vuelto=vuelto
         self.usuario_id=usuario_id
         self.motorizado=motorizado
         self.nombre=nombre
@@ -301,12 +307,15 @@ class NotaPedido(db.Model):
     def get_visa(self):
         return self.pago_visa
 
+    def get_vuelto(self):
+        return self.vuelto
+    
     def get_total(self):
         return self.total
 
     def get_json(self):
-        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"pago_efectivo":self.pago_efectivo,"pago_yape":self.pago_yape,"pago_visa":self.pago_visa,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
-              "usuario":self.usuario.get_nombre(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id}
+        json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"pago_efectivo":self.pago_efectivo,"pago_yape":self.pago_yape,"pago_visa":self.pago_visa,"vuelto":self.vuelto,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
+              "usuario":self.usuario.get_nombre(),"nombre_usuario":self.usuario.get_nombre_usuario(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id}
 
         return json
     

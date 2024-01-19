@@ -52,6 +52,7 @@ def crear(current_user):
         "pago_efectivo": 10.00,
         "pago_visa": 0.00,
         "pago_yape": 0.00,
+        "vuelto": 0.00,
         "motorizado": "MOTORIZADO",
         "estado_pago": "True",
         "comentario": "SIN COMENTARIOS",
@@ -78,6 +79,7 @@ def crear(current_user):
     np_pago_efectivo=data.get("pago_efectivo",0.00)
     np_pago_visa=data.get("pago_visa",0.00)
     np_pago_yape=data.get("pago_yape",0.00)
+    np_vuelto=data.get("vuelto",0.00)
 
     np_motorizado=data.get("motorizado","-")
     np_comprador=data.get("nombre_comprador","VARIOS").strip().upper()
@@ -97,9 +99,9 @@ def crear(current_user):
         if request.method=='POST':
             if current_user.get_rol()=='Mozo':
                 np_mesa_id=data.get("mesa_id")
-                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_comentario)
+                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_vuelto,np_comentario)
             else:    
-                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,comentario=np_comentario)
+                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)
 
             db.session.add(nota)
             db.session.commit()
@@ -344,7 +346,7 @@ def resumen(current_user):
             for notas in notas_pedidos_resumen:
                 json_notas_pedidos.append(notas.get_json())
                 cancelado_general_total+=notas.get_total()
-                cancelado_efectivo+=notas.get_efectivo()
+                cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
                 cancelado_yape+=notas.get_yape()
                 cancelado_visa=notas.get_visa()
 
@@ -360,7 +362,7 @@ def resumen(current_user):
         for notas in notas_pedidos_resumen:
             json_notas_pedidos.append(notas.get_json())
             cancelado_general_total+=notas.get_total()
-            cancelado_efectivo+=notas.get_efectivo()
+            cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
             cancelado_yape+=notas.get_yape()
             cancelado_visa=notas.get_visa()
         return jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
