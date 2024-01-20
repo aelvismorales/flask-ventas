@@ -373,7 +373,7 @@ def ver_usuarios_delivery(current_user):
     Returns:
         tuple: Una tupla que contiene un diccionario con la lista de usuarios y el código de estado HTTP.
     """
-    if not current_user.is_administrador():
+    if not current_user.is_administrador() or not current_user.is_cajero():
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     usuarios=Usuario.query.filter_by(role_id = 4,ocupado = False).all()
 

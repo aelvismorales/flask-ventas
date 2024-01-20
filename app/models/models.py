@@ -67,6 +67,10 @@ class Usuario(db.Model):
     
     def is_administrador(self):
         return self.can(Permission.ADMINISTRADOR)
+    
+    def is_cajero(self):
+        return self.can(Permission.CREAR_NOTA)
+ 
 
     def get_json(self):
         json={"id":self.id,"nombre":self.nombre,"nombre_usuario":self.nombre_usuario,"role_id":self.role.get_nombre(),"ocupado":self.ocupado}
