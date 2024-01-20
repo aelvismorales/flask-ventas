@@ -110,7 +110,7 @@ def login():
             token=jwt.encode({'id':usuario.get_id(),'rol':usuario.get_rol(),'auth':True,
                               'exp':datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-            return jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol()}),200
+            return jsonify({"mensaje":"Inicio de sesion correcto","http_code": 200,'token':token,'rol':usuario.get_rol(),"nombre_usuario":usuario.get_nombre_usuario()}),200
         else:
             return jsonify({"mensaje":"Usuario o Contraseña incorrectos","http_code": 400}),400
     else:
@@ -141,7 +141,7 @@ def token_still_valid(current_user):
     token = jwt.encode({'id':current_user.get_id(),'rol':current_user.get_rol(),'auth':True,
                               'exp':datetime.datetime.utcnow()+datetime.timedelta(hours=18)
                               },key=current_app.config['SECRET_KEY'])
-    return jsonify({"mensaje":"Token still valid","http_code": 200,'rol':current_user.get_rol(),'token':token}),200
+    return jsonify({"mensaje":"Token still valid","http_code": 200,'rol':current_user.get_rol(),'token':token,"nombre_usuario":current_user.get_nombre_usuario()}),200
 
 
 # USUARIO
