@@ -309,6 +309,16 @@ def ver(current_user,id):
     
     return jsonify({"nota":nota.get_json(),"http_code":200}),200
 
+@nota_scope.route('/ver/mesa-id/<id_mesa>',methods=['GET'])
+@token_required
+def ver_mesa_id(current_user,id_mesa):
+    nota=NotaPedido.query.filter_by(mesa_id=id_mesa).first()
+    if nota is None:
+        return handle_not_found("El nota con ese ID no se encuentra")
+    
+    return jsonify({"nota":nota.get_json(),"http_code":200}),200
+
+
 @nota_scope.route('/resumen',methods=['GET','POST'])
 @token_required
 def resumen(current_user):
@@ -383,10 +393,9 @@ def anular(current_user,id):
         return handle_not_found("El nota con ese ID no se encuentra")
 
     if request.method=='PUT':
-        tipo=request.args.get('tipo',default='ANULADO',type=str).upper()
-        nota.tipo_pago=tipo
+        nota.anulado=True
         db.session.commit()
-        return jsonify({"mensaje":"La nota de pedido cambio a %s" % tipo,"http_code":200}),200
+        return jsonify({"mensaje":"La nota de pedido %s cambio a ANULADO" % id,"http_code":200}),200
     
 @nota_scope.route('/eliminar/<id>',methods=['GET','DELETE'])
 @token_required

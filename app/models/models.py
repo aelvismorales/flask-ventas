@@ -242,11 +242,12 @@ class NotaPedido(db.Model):
     motorizado=db.Column(db.String(64),nullable=False,default='-')
     comentario=db.Column(db.String(128),nullable=False,default="-")
 
-
     productos=db.relationship('Producto',secondary=detalle_venta,
                               backref=db.backref('nota_pedidos',lazy='dynamic'),
                               lazy='dynamic')
+
     total=db.Column(db.Numeric(precision=10,scale=2),default=0.00)
+    anulado=db.Column(db.Boolean,default=False) # True Anulado False No Anulado
     estado_pago=db.Column(db.Boolean,default=False) # True-Cancelado False Por cancelar
     estado_atendido=db.Column(db.Boolean,default=False) # True Atendido False No Atendido
     mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id',ondelete='SET DEFAULT',),nullable=True,server_default=None)
@@ -319,7 +320,7 @@ class NotaPedido(db.Model):
 
     def get_json(self):
         json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"pago_efectivo":self.pago_efectivo,"pago_yape":self.pago_yape,"pago_visa":self.pago_visa,"vuelto":self.vuelto,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
-              "usuario":self.usuario.get_nombre(),"nombre_usuario":self.usuario.get_nombre_usuario(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id,"comentario":self.comentario}
+              "usuario":self.usuario.get_nombre(),"nombre_usuario":self.usuario.get_nombre_usuario(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,"mesa":self.mesa_id,"comentario":self.comentario,"anulado":self.anulado}
 
         return json
     
