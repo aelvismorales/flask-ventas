@@ -275,6 +275,7 @@ class NotaPedido(db.Model):
         lista_productos=[]
         for producto,cantidad,dv_precio,dv_atendido in detalles:
             lista_productos.append({
+                "id":producto.get_id(),
                 "nombre":producto.get_nombre(),
                 "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
                 "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale))),
