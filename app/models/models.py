@@ -276,6 +276,7 @@ class NotaPedido(db.Model):
         for producto,cantidad,dv_precio,dv_atendido in detalles:
             lista_productos.append({
                 "id":producto.get_id(),
+                "imagen_id":producto.get_imagen_id(),
                 "nombre":producto.get_nombre(),
                 "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
                 "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale))),
