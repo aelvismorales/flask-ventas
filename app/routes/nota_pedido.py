@@ -86,6 +86,7 @@ def crear(current_user):
     np_direccion=data.get("direccion","Local").strip().upper()
     np_telefono=data.get("telefono","-").strip()
     np_estado_pago= True if data.get("estado_pago")=='True' else False
+    np_estado_atendido=True if data.get("estado_atendido")=='True' else False
     np_comentario=data.get("comentario","")
 
     #np_paga=data.get("paga-con",0.0)
@@ -131,6 +132,7 @@ def crear(current_user):
                 db.session.execute(detalle_)
             
             nota.total=total_sale
+            nota.estado_atendido=np_estado_atendido
             db.session.commit()
             return jsonify({"mensaje":"Nota de pedido creado correctamente","nota":nota.get_json(),"http_code":200}),200
     else:
@@ -156,6 +158,7 @@ def editar(current_user,id):
         "pago_yape": 0.00,
         "motorizado": "MOTORIZADO",
         "estado_pago": "True",
+        "estado_atendido"="True",
         "comentario": "SIN COMENTARIOS",
         "productos": [
             {
@@ -191,6 +194,7 @@ def editar(current_user,id):
         np_direccion=data.get("direccion").strip().upper()
         np_telefono=data.get("telefono","-").strip()
         np_estado_pago= True if data.get("estado_pago")=='True' else False
+        np_estado_atendido=True if data.get("estado_atendido")=='True' else False
         np_comentario=data.get("comentario","")
         np_productos=data.get("productos",[])
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
@@ -227,6 +231,7 @@ def editar(current_user,id):
             nota.telefono=np_telefono
             nota.motorizado=np_motorizado
             nota.estado_pago=np_estado_pago
+            nota.estado_atendido=np_estado_atendido
             nota.comentario=np_comentario
             nota.total=total_sale
             
