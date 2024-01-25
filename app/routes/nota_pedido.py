@@ -3,7 +3,7 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 from flask import Blueprint,request,jsonify
 from sqlalchemy import asc
-from ..models.models import NotaPedido,db,detalle_venta,Usuario
+from ..models.models import NotaPedido,db,detalle_venta,Usuario,Mesa
 from ..decorators import token_required
 from ..errors.errors import *
 nota_scope=Blueprint('nota_pedido',__name__)
@@ -97,8 +97,14 @@ def crear(current_user):
     #TODO VERIFICAR QUE LA SUMA TOTAL DE LOS PAGOS SEA IGUAL A LA DEL TOTAL SALE DESDE FRONT DADO QUE EN BACKEND NECESITARE EL TOTAL SALE PREVIO A CREAR LA NOTA DE PEDIDO QUE TAMBIEN ME LO PUEDEN ENVIAR DESDE FRONT.
     if np_telefono is not None and np_comprador is not None and np_direccion is not None:
         if request.method=='POST':
-            if current_user.get_rol()=='Mozo':
+            if current_user.get_rol()=='Mozo' or current_user.get_rol()=='Administrador':
                 np_mesa_id=data.get("mesa_id")
+                #Verificando que la mesa existe
+                mesa=Mesa.query.get(np_mesa_id)
+                if mesa is None:
+                    return handle_bad_request("La mesa con ese ID no existe")
+                if mesa.estado_mesa==False:
+                    return handle_bad_request("La mesa con ese ID no esta disponible")
                 nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_vuelto,np_comentario)
             else:    
                 nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)
@@ -189,17 +195,28 @@ def editar(current_user,id):
         np_productos=data.get("productos",[])
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
         try:
+            np_productos=data.get("productos",[]) # Nuevo
+            productos_nota=nota.get_productos_id() # Actual 
+            total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
+
+            modified_items, deleted_items, added_items = find_modified_deleted_and_added(productos_nota, np_productos)
+            for deleted_item in deleted_items:
+                detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
+                db.session.execute(detalle_delete)
+
+            for modified_item in modified_items:
+                detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'))
+                db.session.execute(detalle_modified)
+        
+            for added_item in added_items:
+                detalle_added=detalle_venta.insert().values(nota_id=id, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'))
+                db.session.execute(detalle_added)
+            
+            #Calculando nudo el total de la nota de pedido con los nuevos datos:
             for producto in np_productos:
-                producto_id=producto.get("producto_id")
                 cantidad=Decimal(producto.get("cantidad",1)).quantize(Decimal("1e-{0}".format(2)))
                 producto_precio=Decimal(producto.get("precio",1)).quantize(Decimal("1e-{0}".format(2)))
-
                 total_sale+=producto_precio*cantidad
-                detalle=(detalle_venta.update()
-                        .where(detalle_venta.c.nota_id==id)
-                        .where(detalle_venta.c.producto_id==producto_id).values(dv_cantidad=cantidad,dv_precio=producto_precio)
-                        )
-                db.session.execute(detalle)
 
             nota.pago_efectivo=np_pago_efectivo
             nota.pago_yape=np_pago_yape
@@ -286,6 +303,12 @@ def editar_mozo_nota(current_user,id_nota):
         for added_item in added_items:
             detalle_added=detalle_venta.insert().values(nota_id=id_nota, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'))
             db.session.execute(detalle_added)
+        
+        # Obteniendo el total de la nota de pedido con los nuevos datos
+        for producto in np_productos:
+            cantidad=Decimal(producto.get("cantidad",1)).quantize(Decimal("1e-{0}".format(2)))
+            producto_precio=Decimal(producto.get("precio",1)).quantize(Decimal("1e-{0}".format(2)))
+            total_sale+=producto_precio*cantidad
 
         nota.total=total_sale
         nota.estado_atendido=False
