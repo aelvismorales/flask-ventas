@@ -312,7 +312,7 @@ def ver(current_user,id):
 @nota_scope.route('/ver/mesa-id/<id_mesa>',methods=['GET'])
 @token_required
 def ver_mesa_id(current_user,id_mesa):
-    nota=NotaPedido.query.filter_by(mesa_id=id_mesa).first()
+    nota=NotaPedido.query.filter_by(mesa_id=id_mesa).order_by(NotaPedido.fecha_venta.desc()).first()
     if nota is None:
         return handle_not_found("El nota con ese ID no se encuentra")
     
