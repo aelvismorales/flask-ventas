@@ -326,7 +326,7 @@ class NotaPedido(db.Model):
 
         json={"id":self.id,"fecha_venta":self.get_fecha_venta(),"pago_efectivo":self.pago_efectivo,"pago_yape":self.pago_yape,"pago_visa":self.pago_visa,"vuelto":self.vuelto,"cliente":self.nombre,"direccion":self.direccion,"telefono":self.telefono,
               "usuario":self.usuario.get_nombre(),"nombre_usuario":self.usuario.get_nombre_usuario(),"productos":self.get_productos(),"motorizado":self.motorizado,"total":self.total,"estado_pago":self.estado_pago,"estado_atendido":self.estado_atendido,
-              "mesa_id":self.mesa_id,"comentario":self.comentario,"anulado":self.anulado,"mesa_piso":self.mesa.get_piso(),"mesa_numero":numero_mesa,"mesa_piso_numero":numero_piso}
+              "mesa_id":self.mesa_id,"comentario":self.comentario,"anulado":self.anulado,"mesa_numero":numero_mesa,"mesa_piso_numero":numero_piso}
 
         return json
     
