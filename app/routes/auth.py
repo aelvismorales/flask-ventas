@@ -376,7 +376,7 @@ def ver_usuarios_delivery(current_user):
     if not current_user.is_administrador() and not current_user.is_cajero():
         return handle_forbidden("No tienes Autorizacion para acceder a este recurso")
     
-    usuarios=Usuario.query.filter_by(role_id = 4,ocupado = False).all()
+    usuarios=Usuario.query.filter_by(role_id = 4).all()
 
     if usuarios is None or len(usuarios)==0:
         return handle_not_found("No se encontro ningun usuario con ese ID")
