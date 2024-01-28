@@ -411,7 +411,7 @@ def resumen(current_user):
         if len(notas_pedidos_resumen)>0:
             for notas in notas_pedidos_resumen:
                 json_notas_pedidos.append(notas.get_json())
-                if notas.get_anulado()==False:
+                if notas.get_anulado()==False and notas.get_estado_pago()==True:
                     cancelado_general_total+=notas.get_total()
                     cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
                     cancelado_yape+=notas.get_yape()
@@ -428,7 +428,7 @@ def resumen(current_user):
     if len(notas_pedidos_resumen)>0:
         for notas in notas_pedidos_resumen:
             json_notas_pedidos.append(notas.get_json())
-            if notas.get_anulado()==False:
+            if notas.get_anulado()==False and notas.get_estado_pago()==True:
                 cancelado_general_total+=notas.get_total()
                 cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
                 cancelado_yape+=notas.get_yape()
