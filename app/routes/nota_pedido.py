@@ -34,6 +34,16 @@ def find_modified_deleted_and_added(data1, data2):
 
         return modified, deleted, added
 
+def find_modified_deleted_and_added2(old_data, new_data):
+    old_dict = {d['producto_id']: d for d in old_data}
+    new_dict = {d['producto_id']: d for d in new_data}
+
+    modified_items = [new_dict[id] for id in old_dict if id in new_dict and old_dict[id] != new_dict[id]]
+    deleted_items = [old_dict[id] for id in old_dict if id not in new_dict]
+    added_items = [new_dict[id] for id in new_dict if id not in old_dict]
+
+    return modified_items, deleted_items, added_items
+
 
 @nota_scope.route('/crear',methods=['POST'])
 @token_required
@@ -138,7 +148,8 @@ def crear(current_user):
                 total_sale+=producto_precio*cantidad
                 detalle_=detalle_venta.insert().values(nota_id=nota.get_id(),producto_id=product_id,dv_cantidad=cantidad,dv_precio=producto_precio)
                 db.session.execute(detalle_)
-            
+            db.session.commit()
+
             nota.total=total_sale
             nota.estado_atendido=np_estado_atendido
             db.session.commit()
@@ -208,22 +219,26 @@ def editar(current_user,id):
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
         try:
             np_productos=data.get("productos",[]) # Nuevo
-            productos_nota=nota.get_productos_id() # Actual 
+            productos_nota=nota.get_productos_id() # Actual ,antiguo
             total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
 
-            modified_items, deleted_items, added_items = find_modified_deleted_and_added(productos_nota, np_productos)
+            modified_items, deleted_items, added_items = find_modified_deleted_and_added2(productos_nota, np_productos)
+            print(deleted_items)
             for deleted_item in deleted_items:
-                detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
+                detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
                 db.session.execute(detalle_delete)
+            db.session.commit()
 
+            print(modified_items)
             for modified_item in modified_items:
-                detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'))
+                detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
                 db.session.execute(detalle_modified)
-        
+            db.session.commit()
+
             for added_item in added_items:
-                detalle_added=detalle_venta.insert().values(nota_id=id, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'))
+                detalle_added=detalle_venta.insert().values(nota_id=int(id), producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)
                 db.session.execute(detalle_added)
-            
+            db.session.commit() 
             #Calculando nudo el total de la nota de pedido con los nuevos datos:
             for producto in np_productos:
                 cantidad=Decimal(producto.get("cantidad",1)).quantize(Decimal("1e-{0}".format(2)))
@@ -303,20 +318,23 @@ def editar_mozo_nota(current_user,id_nota):
         productos_nota=nota.get_productos_id() # Actual 
         total_sale = Decimal(0.0).quantize(Decimal("1e-{0}".format(2)))
         
-        modified_items, deleted_items, added_items = find_modified_deleted_and_added(productos_nota, np_productos)
+        modified_items, deleted_items, added_items = find_modified_deleted_and_added2(productos_nota, np_productos)
         
         for deleted_item in deleted_items:
-            detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==id_nota).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
+            detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==int(id_nota)).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
             db.session.execute(detalle_delete)
+        db.session.commit()
 
         for modified_item in modified_items:
-            detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==id_nota).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'))
+            detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
             db.session.execute(detalle_modified)
-        
+        db.session.commit()
+
         for added_item in added_items:
-            detalle_added=detalle_venta.insert().values(nota_id=id_nota, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'))
+            detalle_added=detalle_venta.insert().values(nota_id=int(id), producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)                
             db.session.execute(detalle_added)
-        
+        db.session.commit()
+
         # Obteniendo el total de la nota de pedido con los nuevos datos
         for producto in np_productos:
             cantidad=Decimal(producto.get("cantidad",1)).quantize(Decimal("1e-{0}".format(2)))

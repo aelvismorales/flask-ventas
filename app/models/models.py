@@ -289,13 +289,14 @@ class NotaPedido(db.Model):
         """
         Retorna una lista con los productos en la nota de pedido. solo nombre y cantidad.
         """
-        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
+        detalles=db.session.query(Producto,detalle_venta.c.dv_cantidad,detalle_venta.c.dv_precio,detalle_venta.c.dv_atendido).join(detalle_venta,Producto.id==detalle_venta.c.producto_id).filter(detalle_venta.c.nota_id==self.id)
         lista_productos=[]
-        for producto,cantidad,dv_precio in detalles:
+        for producto,cantidad,dv_precio,dv_atendido in detalles:
             lista_productos.append({
                 "producto_id":producto.get_id(),
                 "cantidad": Decimal(cantidad).quantize(Decimal("1e-{0}".format(scale))),
-                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale)))
+                "precio":Decimal(dv_precio).quantize(Decimal("1e-{0}".format(scale))),
+                "atendido":dv_atendido
             })
 
         return lista_productos
