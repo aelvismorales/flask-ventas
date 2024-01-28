@@ -228,7 +228,7 @@ class Producto(db.Model):
 class NotaPedido(db.Model):
     __tablename__="nota_pedidos"
     id=db.Column(db.Integer,primary_key=True)
-    fecha_venta=db.Column(db.DateTime,default=datetime.now(timezone.utc)-timedelta(hours=5))
+    fecha_venta=db.Column(db.DateTime,default= lambda:datetime.now(timezone.utc)-timedelta(hours=5))
     
     pago_efectivo=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
     pago_yape=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
