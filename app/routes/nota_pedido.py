@@ -409,10 +409,11 @@ def resumen(current_user):
         if len(notas_pedidos_resumen)>0:
             for notas in notas_pedidos_resumen:
                 json_notas_pedidos.append(notas.get_json())
-                cancelado_general_total+=notas.get_total()
-                cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
-                cancelado_yape+=notas.get_yape()
-                cancelado_visa+=notas.get_visa()
+                if notas.get_anulado()==False:
+                    cancelado_general_total+=notas.get_total()
+                    cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
+                    cancelado_yape+=notas.get_yape()
+                    cancelado_visa+=notas.get_visa()
 
             return jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
                             ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200
@@ -425,10 +426,11 @@ def resumen(current_user):
     if len(notas_pedidos_resumen)>0:
         for notas in notas_pedidos_resumen:
             json_notas_pedidos.append(notas.get_json())
-            cancelado_general_total+=notas.get_total()
-            cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
-            cancelado_yape+=notas.get_yape()
-            cancelado_visa+=notas.get_visa()
+            if notas.get_anulado()==False:
+                cancelado_general_total+=notas.get_total()
+                cancelado_efectivo+=notas.get_efectivo() - notas.get_vuelto()
+                cancelado_yape+=notas.get_yape()
+                cancelado_visa+=notas.get_visa()
         return jsonify({"mensaje":"Resumen de Notas obtenido","fecha_inicio":fecha_inicio,"fecha_fin":fecha_fin,"notas":json_notas_pedidos,"http_code":200
                         ,"cancelado_general_total":cancelado_general_total,"cancelado_efectivo":cancelado_efectivo,"cancelado_yape":cancelado_yape,"cancelado_visa":cancelado_visa,"recuento_ventas":len(notas_pedidos_resumen)}),200
     else:
