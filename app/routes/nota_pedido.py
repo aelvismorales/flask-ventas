@@ -108,28 +108,29 @@ def crear(current_user):
     #TODO VERIFICAR QUE LA SUMA TOTAL DE LOS PAGOS SEA IGUAL A LA DEL TOTAL SALE DESDE FRONT DADO QUE EN BACKEND NECESITARE EL TOTAL SALE PREVIO A CREAR LA NOTA DE PEDIDO QUE TAMBIEN ME LO PUEDEN ENVIAR DESDE FRONT.
     if np_telefono is not None and np_comprador is not None and np_direccion is not None:
         if request.method=='POST':
-            if current_user.get_rol()=='Mozo':
-                np_mesa_id=data.get("mesa_id") if data.get("mesa_id") is not None else None
-                #Verificando que la mesa existe
-                mesa=Mesa.query.get(np_mesa_id)
-                if mesa is None:
-                    return handle_bad_request("La mesa con ese ID no existe")
-                if mesa.estado_mesa==True:
-                    return handle_bad_request("La mesa con ese ID no esta disponible")
+            #if current_user.get_rol()=='Mozo':
+            np_mesa_id=data.get("mesa_id") if data.get("mesa_id") is not None else None
+            #Verificando que la mesa existe
+            mesa=Mesa.query.get(np_mesa_id)
+            if mesa is None:
+                return handle_bad_request("La mesa con ese ID no existe")
+            if mesa.estado_mesa==True:
+                return handle_bad_request("La mesa con ese ID no esta disponible")
+            else:
                 nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_vuelto,np_comentario)
 
-            if current_user.get_rol()=='Administrador':
-                np_mesa_id=data.get("mesa_id")
+            #if current_user.get_rol()=='Administrador':
+             #   np_mesa_id=data.get("mesa_id")
                 #Verificando que la mesa existe
-                if np_mesa_id is not None:
-                    mesa=Mesa.query.get(np_mesa_id)
-                    if mesa is None:
-                        nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)
-                    if mesa.estado_mesa==True:
-                        return handle_bad_request("La mesa con ese ID no esta disponible")                    
-                    nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_vuelto,np_comentario)
-                else:
-                    nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)                
+              #  if np_mesa_id is not None:
+               #     mesa=Mesa.query.get(np_mesa_id)
+                #    if mesa is None:
+                 #       nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)
+                  #  if mesa.estado_mesa==True:
+                   #     return handle_bad_request("La mesa con ese ID no esta disponible")                    
+                #else:
+                 #   nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,pago_efectivo=np_pago_efectivo,pago_yape=np_pago_yape,pago_visa=np_pago_visa,vuelto=np_vuelto,comentario=np_comentario)                
+                
             db.session.add(nota)
             db.session.commit()
             
