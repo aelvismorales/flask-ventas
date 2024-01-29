@@ -227,18 +227,18 @@ def editar(current_user,id):
             modified_items, deleted_items, added_items = find_modified_deleted_and_added2(productos_nota, np_productos)
             print(deleted_items)
             for deleted_item in deleted_items:
-                detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
+                detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
                 db.session.execute(detalle_delete)
             db.session.commit()
 
             print(modified_items)
             for modified_item in modified_items:
-                detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
+                detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==id).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
                 db.session.execute(detalle_modified)
             db.session.commit()
 
             for added_item in added_items:
-                detalle_added=detalle_venta.insert().values(nota_id=int(id), producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)
+                detalle_added=detalle_venta.insert().values(nota_id=id, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)
                 db.session.execute(detalle_added)
             db.session.commit() 
             #Calculando nudo el total de la nota de pedido con los nuevos datos:
@@ -323,17 +323,17 @@ def editar_mozo_nota(current_user,id_nota):
         modified_items, deleted_items, added_items = find_modified_deleted_and_added2(productos_nota, np_productos)
         
         for deleted_item in deleted_items:
-            detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==int(id_nota)).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
+            detalle_delete=detalle_venta.delete().where(detalle_venta.c.nota_id==id_nota).where(detalle_venta.c.producto_id==deleted_item.get('producto_id'))
             db.session.execute(detalle_delete)
         db.session.commit()
 
         for modified_item in modified_items:
-            detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==int(id)).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
+            detalle_modified=detalle_venta.update().where(detalle_venta.c.nota_id==id_nota).where(detalle_venta.c.producto_id==modified_item.get('producto_id')).values(dv_cantidad=modified_item.get('cantidad'),dv_precio=modified_item.get('precio'),dv_atendido= True if modified_item.get("atendido") =="True" else False)
             db.session.execute(detalle_modified)
         db.session.commit()
 
         for added_item in added_items:
-            detalle_added=detalle_venta.insert().values(nota_id=int(id), producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)                
+            detalle_added=detalle_venta.insert().values(nota_id=id_nota, producto_id=added_item.get('producto_id'),dv_cantidad=added_item.get('cantidad'),dv_precio=added_item.get('precio'),dv_atendido= True if added_item.get("atendido") =="True" else False)                
             db.session.execute(detalle_added)
         db.session.commit()
 
@@ -376,7 +376,7 @@ def ver_mesa_id(current_user,id_mesa):
 
 
 @nota_scope.route('/resumen',methods=['GET','POST'])
-@token_required
+@token_required 
 def resumen(current_user):
     """
     Obtiene el resumen de las notas de pedido, dependiendo de la fecha de inicio y fecha de fin.
