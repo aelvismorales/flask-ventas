@@ -113,7 +113,7 @@ def crear(current_user):
             #Verificando que la mesa existe
             mesa=Mesa.query.get(np_mesa_id)
             if mesa is None:
-                return handle_bad_request("La mesa con ese ID no existe")
+                nota=NotaPedido(current_user.get_id(),np_motorizado,np_comprador,np_direccion,np_telefono,np_estado_pago,np_mesa_id,np_pago_efectivo,np_pago_yape,np_pago_visa,np_vuelto,np_comentario)
             if mesa.estado_mesa==True:
                 return handle_bad_request("La mesa con ese ID no esta disponible")
             else:
