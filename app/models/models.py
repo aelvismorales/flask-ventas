@@ -323,6 +323,9 @@ class NotaPedido(db.Model):
     
     def get_anulado(self):
         return self.anulado
+    
+    def get_estado_pago(self):
+        return self.estado_pago
 
     def get_json(self):
         numero_mesa =self.mesa.get_numero_mesa() if self.mesa is not None else None
