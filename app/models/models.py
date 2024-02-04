@@ -94,11 +94,12 @@ class Usuario(db.Model):
     def get_nombre_usuario(self):
         return self.nombre_usuario
 
-    def crear_admins(self):
+    @staticmethod
+    def crear_admins():
         admin1=Usuario.query.filter_by(nombre_usuario="aelvismorales").first()
         admin2=Usuario.query.filter_by(nombre_usuario="admin").first()
         if admin1 is None:
-            admin1=Usuario("Aelvis Morales","aelvismorales","morales123")
+            admin1=Usuario("aelvismorales","aelvismorales","morales123")
             db.session.add(admin1)
         if admin2 is None:
             admin2=Usuario("Admin","admin","morales123",5)
