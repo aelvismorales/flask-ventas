@@ -94,6 +94,17 @@ class Usuario(db.Model):
     def get_nombre_usuario(self):
         return self.nombre_usuario
 
+    def crear_admins(self):
+        admin1=Usuario.query.filter_by(nombre_usuario="aelvismorales").first()
+        admin2=Usuario.query.filter_by(nombre_usuario="admin").first()
+        if admin1 is None:
+            admin1=Usuario("Aelvis Morales","aelvismorales","morales123")
+            db.session.add(admin1)
+        if admin2 is None:
+            admin2=Usuario("Admin","admin","morales123",5)
+            db.session.add(admin2)
+        db.session.commit()
+
 class Role(db.Model):
     __tablename__='roles'
     id=db.Column(db.Integer,primary_key=True)

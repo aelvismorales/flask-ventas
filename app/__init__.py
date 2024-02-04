@@ -2,7 +2,7 @@ from flask import Flask
 from config import config,CORS_CONFIG
 from flask_cors  import CORS
 from app.routes import auth_scope,producto_scope,articulo_scope,nota_scope,mesa_scope
-from app.models.models import db,Role,Tipo,Imagen
+from app.models.models import db,Role,Tipo,Imagen,Usuario
 from flask_migrate import Migrate,upgrade,init,migrate
 
 import os
@@ -17,9 +17,11 @@ def create_app(config_name):
     migration.init_app(app,db)
     with app.app_context():
         db.create_all()
+        Usuario.crear_admins()
         Role.insertar_roles()
         Tipo.insertar_tipos()
         Imagen.insertar_fotos()
+
         if os.path.exists("migrations"):
             upgrade()
         else:
