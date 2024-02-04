@@ -39,7 +39,7 @@ def crear(current_user):
         return jsonify({"mensaje":"Se creo con exito la mesa","http_code":201}),201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"mensaje":"No se pudo crear la mesa","error":e.args[0],"http_code":409}),409
+        return jsonify({"mensaje":"La mesa con este piso y numero de mesa ya","error":e.args[0],"http_code":400}),400
     
 @mesa_scope.route('/editar/<id>',methods=['GET','PUT'])
 @token_required
@@ -106,14 +106,18 @@ def editar_estados(current_user,id):
     - Si la mesa existe, se actualiza su estado en la base de datos y se retorna un mensaje de éxito con código HTTP 200.
     - Si la mesa no existe, se retorna un mensaje de error con código HTTP 500.
     """
-    mesa=Mesa.query.filter_by(id=id).first()
+    mesa = Mesa.query.filter_by(id=id).first()
     if mesa is not None:
-        data=request.json
-        m_estado=True if data.get('estado_mesa')=='True' else False
+        data = request.json
+        m_estado = True if data.get('estado_mesa') == 'True' else False
 
-        mesa.estado_mesa=m_estado
+        # Verificar si el estado enviado es el mismo que el estado actual
+        if mesa.estado_mesa == m_estado:
+            return jsonify({"mensaje": "El estado enviado es el mismo que el estado actual", "http_code": 200}), 200
+
+        mesa.estado_mesa = m_estado
         db.session.commit()
-        return jsonify({"mensaje":"Actualizado con exito","http_code":200}),200
+        return jsonify({"mensaje": "Actualizado con éxito", "http_code": 200}), 200
     else:
         return handle_not_found("La mesa con ese ID no se encuentra")
     

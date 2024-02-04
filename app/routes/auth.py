@@ -146,6 +146,7 @@ def token_still_valid(current_user):
 
 # USUARIO
 #Quizas utilizar url queries para obtener los datos ordenados y que no lo realice el front ?
+# -> No se esta utilizando en el FrontEnd. Usos en Vista de Usuario
 @auth_scope.route('/buscar/<string:nombre>',methods=['GET'])
 @token_required
 def buscar_nombre(current_user,nombre):
@@ -236,11 +237,11 @@ def editar(current_user,id):
                 if filename != '':
                     file_ext = os.path.splitext(filename)[1]
                     if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                        return jsonify({"mensaje": "La imagen subida no cumple con el formato permitido o es muy grande 'jpg','png'", "http_code": 400}), 400
+                        return jsonify({"mensaje": "La imagen subida no cumple con el formato permitido 'jpg','png'", "http_code": 400}), 400
                     path = current_app.config['UPLOAD_PATH_PRODUCTOS'] + '/' + last_image.get_filename()
                     if os.path.exists(path) and (last_image.get_id() != 1 or last_image.get_id() != 2):
                         os.remove(path)
-                        final_filename = u_nombre + file_ext
+                        final_filename = secure_filename(u_nombre + file_ext)
                         imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'], final_filename))
                         img = Imagen(final_filename, current_app.config['UPLOAD_PATH_PERFILES'], imagen_subida.mimetype)
                         db.session.add(img)
@@ -251,7 +252,7 @@ def editar(current_user,id):
                         db.session.commit()
                         mensaje_eliminado = "Se elimino la imagen anterior correctamente"
                     elif last_image.get_id() == 1 or last_image.get_id() == 2:
-                        final_filename = u_nombre + file_ext
+                        final_filename = secure_filename(u_nombre + file_ext)
                         imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PERFILES'], final_filename))
                         img = Imagen(final_filename, current_app.config['UPLOAD_PATH_PERFILES'], imagen_subida.mimetype)
                         db.session.add(img)

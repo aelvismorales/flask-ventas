@@ -58,8 +58,8 @@ def crear(current_user):
         if filename !='':
             file_ext=os.path.splitext(filename)[1]
             if file_ext not in current_app.config['UPLOAD_EXTENSIONS'] or file_ext != validar_imagen(imagen_subida.stream):
-                return handle_bad_request("La imagen subida no cumple con el formato permitido o excede 1024*1024 'jpg','png'")
-            final_filename=p_nombre+file_ext
+                return handle_bad_request("La imagen subida no cumple con el formato permitido 'jpg','png'")
+            final_filename=secure_filename(p_nombre+file_ext)
             imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
             img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
             db.session.add(img)
@@ -142,7 +142,7 @@ def editar(current_user,id):
                     path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+last_image.get_filename()          
                     if os.path.exists(path) and last_image.get_id()!=3:
                         os.remove(path)
-                        final_filename=p_nombre+file_ext
+                        final_filename= secure_filename(p_nombre+file_ext)
                         imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
                         img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
                         db.session.add(img)
@@ -155,7 +155,7 @@ def editar(current_user,id):
                         db.session.commit()
 
                     elif last_image.get_id()==3:
-                        final_filename=p_nombre+file_ext
+                        final_filename= secure_filename(p_nombre+file_ext)
                         imagen_subida.save(os.path.join(current_app.config['UPLOAD_PATH_PRODUCTOS'],final_filename))
                         img=Imagen(final_filename,current_app.config['UPLOAD_PATH_PRODUCTOS'],imagen_subida.mimetype)
                         db.session.add(img)
