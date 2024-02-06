@@ -4,4 +4,4 @@ from os import environ
 app=create_app(environ.get("FLASK_CONFIG","default"))
 
 if __name__=="__main__":
-    app.run()
+    app.run(host='0.0.0.0')
