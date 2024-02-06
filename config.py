@@ -25,7 +25,7 @@ class ProductionConfig(Config):
 class TestConfig(Config):
      TESTING=True
      DEBUG=True
-     SQLALCHEMY_DATABASE_URI=environ.get("DATABASE_TEST")
+     SQLALCHEMY_DATABASE_URI=environ.get("DATABASE_TEST_2")
 
 class DevelopmentConfig(Config):
     DEBUG=True

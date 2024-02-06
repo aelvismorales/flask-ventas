@@ -17,10 +17,11 @@ def create_app(config_name):
     migration.init_app(app,db)
     with app.app_context():
         db.create_all()
-        Usuario.crear_admins()
+        Imagen.insertar_fotos()
         Role.insertar_roles()
         Tipo.insertar_tipos()
-        Imagen.insertar_fotos()
+        Usuario.crear_admins()
+
 
         if os.path.exists("migrations"):
             upgrade()
