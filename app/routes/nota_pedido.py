@@ -389,8 +389,8 @@ def resumen(current_user):
     - Un objeto JSON con el resumen de las notas de pedido, incluyendo la fecha de inicio, fecha de fin, notas de pedido, total cancelado, total en efectivo, total en Yape, total en Visa y el recuento de ventas.
 
     """
-    if not current_user.get_rol()=="Administrador" and not current_user.get_rol()=="Cajero" :
-        return handle_forbidden("No tienes Autorizacion para acceder")
+    #if not current_user.get_rol()=="Administrador" and not current_user.get_rol()=="Cajero" :
+    #    return handle_forbidden("No tienes Autorizacion para acceder")
 
     fecha_inicio=request.args.get('fecha_inicio',default=(datetime.now(timezone.utc)-timedelta(hours=5)).strftime('%Y/%m/%d'),type=str)
     fecha_fin=request.args.get('fecha_fin',default=(datetime.now(timezone.utc)-timedelta(hours=5)+timedelta(days=1)).strftime('%Y/%m/%d'),type=str)
