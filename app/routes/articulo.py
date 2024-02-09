@@ -192,6 +192,13 @@ def buscar_articulo(current_user,nombre):
     
     nombre_arti=nombre.replace("_"," ").upper()
     
+    if nombre_arti=="*":
+        articulos=Articulo.query.all()
+        json_articulos=[]
+        for ar in articulos:
+            json_articulos.append(ar.get_json())
+        return jsonify({"articulos":json_articulos,"http_code":200}),200
+    
     articulos=Articulo.query.filter(Articulo.nombre.like('%'+nombre_arti+'%')).all()
     json_articulos=[]
     if request.method=='GET' and len(articulos)>0:
