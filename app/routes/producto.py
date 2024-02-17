@@ -295,11 +295,11 @@ def ver_producto(current_user,id_producto):
     img=Imagen.query.filter_by(id=img_id).first()
     path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()          
     if os.path.exists(path):
-        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())
+        return send_from_directory(current_app.config['UPLOAD_PATH_PRODUCTOS'],img.get_filename())
     else:
         producto.imagen_id=3
         db.session.commit()
-        return send_from_directory('../'+current_app.config['UPLOAD_PATH_PRODUCTOS'],'pollo_inicial.png')
+        return send_from_directory(current_app.config['UPLOAD_PATH_PRODUCTOS'],'pollo_inicial.png')
 
 
 

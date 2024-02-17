@@ -20,8 +20,8 @@ class Usuario(db.Model):
     nombre=db.Column(db.String(64),unique=True,index=True)
     nombre_usuario=db.Column(db.String(64),unique=True,index=True)
     contraseña=db.Column(db.String(128))
-    role_id=db.Column(db.Integer,db.ForeignKey('roles.id',ondelete='SET DEFAULT',name="fk_Role"),nullable=False,server_default='1')
-    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_usuario'),nullable=False,server_default='1')
+    role_id=db.Column(db.Integer,db.ForeignKey('roles.id',name="fk_Role",ondelete='CASCADE'),nullable=False)
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',name='FK_imagen_usuario', ondelete='CASCADE'),nullable=False)
     nota_pedidos=db.relationship('NotaPedido',backref='usuario',lazy='dynamic')
     ocupado=db.Column(db.Boolean,default=False)
     
@@ -199,8 +199,8 @@ class Producto(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     nombre=db.Column(db.String(64),unique=True)
     precio=db.Column(db.Numeric(precision=10,scale=2),nullable=False)
-    tipo_id=db.Column(db.Integer,db.ForeignKey('tipos.id',ondelete='SET DEFAULT',name='FK_tipo_producto'),nullable=False,server_default='1')
-    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',ondelete='SET DEFAULT',name='FK_imagen_producto'),nullable=False,server_default='3')
+    tipo_id=db.Column(db.Integer,db.ForeignKey('tipos.id',name='FK_tipo_producto',ondelete='CASCADE'),nullable=False)
+    imagen_id=db.Column(db.Integer,db.ForeignKey('imagenes.id',name='FK_imagen_producto',ondelete='CASCADE'),nullable=False)
     # TO DO - CUANDO INICIES EN LA BASE DE DATOS PARA CREAR UN PRODUCTO POR DEFECTO DEBER EXISTIR LA IMAGEN 1
     def __init__(self,nombre,precio,tipo_id=1,imagen_id=3) -> None:
         self.nombre=nombre
@@ -262,7 +262,7 @@ class NotaPedido(db.Model):
     anulado=db.Column(db.Boolean,default=False) # True Anulado False No Anulado
     estado_pago=db.Column(db.Boolean,default=False) # True-Cancelado False Por cancelar
     estado_atendido=db.Column(db.Boolean,default=False) # True Atendido False No Atendido
-    mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id',ondelete='SET DEFAULT',),nullable=True,server_default=None)
+    mesa_id=db.Column(db.Integer,db.ForeignKey('mesas.id'),nullable=True)
 
     def __init__(self,usuario_id,motorizado,nombre,direccion,telefono,estado_pago=False,mesa_id=None,pago_efectivo=0.00,pago_yape=0.00,pago_visa=0.00,vuelto=0.00,comentario="") -> None:
         self.pago_efectivo=pago_efectivo
@@ -431,8 +431,8 @@ class Imagen(db.Model):
         filename_usuario='usuario_perfil.png'
         filename_producto='pollo_inicial.png'
         mimetype="mime/png"
-        filepath_perfiles='uploads/perfiles'
-        filepath_productos='uploas/productos'
+        filepath_perfiles='/var/www/html/flas-ventas/uploads/perfiles'
+        filepath_productos='/var/www/html/flas-ventas/uploas/productos'
 
         imagenes=[filename_administrador,filename_usuario]
         imageni=[filename_producto]

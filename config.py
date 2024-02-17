@@ -1,13 +1,16 @@
+import os
 from os import environ
 from dotenv import load_dotenv
-load_dotenv()
 
-#CORS_CONFIG = {"resources": {"/*": {"origins": ["http://localhost:61656"],"supports_credentials":False}}}
-CORS_CONFIG = {"resources": {"/*": {"origins": [environ.get('CORS_CF')] if environ.get('CORS_CF') is not None else '*',"supports_credentials":bool(environ.get('CORS_CREDENTIAL')) if environ.get('CORS_CREDENTIAL') is not None else False}}}
+dotenv_path = os.path.join(os.path.dirname(__file__),'.env')
+load_dotenv(dotenv_path)
 
+CORS_CONFIG = {"resources": {"/*": {"origins": '*', "supports_credentials": True}}}
+#CORS_CONFIG = {"resources": {"/*": {"origins": [environ.get('CORS_CF')] if environ.get('CORS_CF') is not None else '*',"supports_credentials":bool(environ.get('CORS_CREDENTIAL')) if environ.get('CORS_CREDENTIAL') is not None else False}}}
 
+print(environ.get('SECRET_KEY'))
 class Config():
-    SECRET_KEY=environ.get('SECRET_KEY')
+    SECRET_KEY="ABC123"
     DEBUG=False
     TESTING=False
     SQLALCHEMY_DATABASE_URI=environ.get('DB_DEV')
@@ -16,8 +19,8 @@ class Config():
     # Configuracion ruta de Imagenes
     MAX_CONTENT_LENGTH=1024*1024
     UPLOAD_EXTENSIONS=['.jpg','.png']
-    UPLOAD_PATH_PRODUCTOS='uploads/productos'
-    UPLOAD_PATH_PERFILES='uploads/perfiles'
+    UPLOAD_PATH_PRODUCTOS='/var/www/html/flask-ventas/uploads/productos'
+    UPLOAD_PATH_PERFILES='/var/www/html/flask-ventas/uploads/perfiles'
 
 class ProductionConfig(Config):
      SQLALCHEMY_DATABASE_URI=environ.get("DATABASE_PRODUCTION")
@@ -25,7 +28,8 @@ class ProductionConfig(Config):
 class TestConfig(Config):
      TESTING=True
      DEBUG=True
-     SQLALCHEMY_DATABASE_URI=environ.get("DATABASE_TEST")
+     #SQLALCHEMY_DATABASE_URI="mysql://remote:admin@192.168.100.17:3307/markus_brasa_test"
+     SQLALCHEMY_DATABASE_URI="mysql+pymysql://root:admin@localhost/markus_brasa_test"
 
 class DevelopmentConfig(Config):
     DEBUG=True
