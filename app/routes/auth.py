@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, make_response,request,send_from_directory,
 from werkzeug.utils import secure_filename
 from ..errors.errors import *
 from ..decorators import token_required
-from ..models.models import Usuario,db,Imagen,Role
+from ..models.models import Usuario,db,Imagen,Role,NotaPedido
 from .general import validar_imagen
 
 import jwt
@@ -321,6 +321,15 @@ def eliminar(current_user,id):
         return handle_not_found("No se encontro ningun usuario con ese ID")
 
     if request.method=='DELETE':
+
+        #Obtener todas las notas de pedido asociadas al usuario
+        notas_pedido_usuario = NotaPedido.query.filter_by(usuario_id=id).all()
+        for nota in notas_pedido_usuario:
+            nota.usuario_id = 2
+            db.session.add(nota)
+
+        db.session.commit()
+    
         img_id=usuario.get_imagen_id()
         img=Imagen.query.filter_by(id=img_id).first()
         path=current_app.config['UPLOAD_PATH_PRODUCTOS']+'/'+img.get_filename()          
